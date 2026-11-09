@@ -9,11 +9,11 @@ This private repository contains the Windows PowerShell installer for an Azeroth
 - Build and non-destructive test scripts.
 - Spanish installation, review, and change documentation.
 
-The desktop launcher defaults to the LAN realm address `192.168.201.213`. It lets a player select an already-installed WoW 3.3.5a client, writes the realm list, and starts the game. It also provides LAN account registration through a TLS-pinned HTTPS service. The account service is limited to private LAN clients; do not expose its port to the public Internet.
+The desktop launcher defaults to the LAN realm address `192.168.201.213`. It detects complete clients in common locations, lets a player select another installed client, or installs one from a complete ZIP package. The client must be WoW 3.3.5a build 12340 and include `Wow.exe`, `Data\interface.MPQ`, `Data\common.MPQ`, and `Data\enUS` or `Data\enGB`. ZIP packages must have `Wow.exe` at their root. The installer rejects existing destination folders and omits personal settings, caches, logs, screenshots, and crash dumps. It also provides LAN account registration through a TLS-pinned HTTPS service at `/api/register`. The account service is limited to private LAN clients; do not expose its port to the public Internet.
 
-## Client files are not included
+## The client package is not included
 
-This repository deliberately excludes WoW client executables, MPQ archives, client ZIP parts, add-ons bundled with a client, and per-user game data. Each player must obtain and select a complete client separately. The launcher checks for `Wow.exe`, `Data\interface.MPQ`, and a supported locale directory before starting.
+`LaunchWoW\Wow.exe` is the build 12340 executable used by the launcher and its tests. It is not a complete playable client: the repository has no game MPQ archives or locale data. Supply a complete client ZIP separately for installation or a full game test. Keep personal settings, caches, logs, screenshots, and crash dumps out of that package.
 
 The `.gitignore` excludes common client assets and local credentials as a safeguard. Do not remove these exclusions to commit client archives or secrets.
 

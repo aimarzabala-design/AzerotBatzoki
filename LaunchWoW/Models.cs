@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
@@ -199,16 +201,110 @@ namespace AzerothCoreLauncher
 
     internal static class ClientValidation
     {
+        internal static bool IsRequiredBuild(int major, int minor, int build, int revision)
+        {
+            return major == 3 && minor == 3 && build == 5 && revision == 12340;
+        }
+
+        internal static string GetInvalidClient(string clientDirectory)
+        {
+            string executable = System.IO.Path.Combine(clientDirectory, "Wow.exe");
+            if (!File.Exists(executable))
+                return "Wow.exe";
+            FileVersionInfo version = FileVersionInfo.GetVersionInfo(executable);
+            if (!IsRequiredBuild(version.FileMajorPart, version.FileMinorPart,
+                version.FileBuildPart, version.FilePrivatePart))
+                return "Wow.exe (se requiere la versión 3.3.5.12340)";
+            string missingArchive = GetMissingRequiredArchive(clientDirectory);
+            if (missingArchive != null)
+                return missingArchive;
+            if (!Directory.Exists(System.IO.Path.Combine(clientDirectory, "Data", "enUS")) &&
+                !Directory.Exists(System.IO.Path.Combine(clientDirectory, "Data", "enGB")))
+                return "Data\\enUS o Data\\enGB";
+            return null;
+        }
+
         internal static string GetMissingRequiredArchive(string clientDirectory)
         {
             string dataDirectory = System.IO.Path.Combine(clientDirectory, "Data");
-            string requiredArchive = System.IO.Path.Combine(dataDirectory, "interface.MPQ");
-            if (!Directory.Exists(dataDirectory) || !File.Exists(requiredArchive))
-                return "Data\\interface.MPQ";
-            if ((File.GetAttributes(requiredArchive) & FileAttributes.ReparsePoint) != 0 ||
-                new FileInfo(requiredArchive).Length == 0)
-                return "Data\\interface.MPQ (archivo vacío o enlace no válido)";
+            foreach (string archive in new[] { "interface.MPQ", "common.MPQ" })
+            {
+                string requiredArchive = System.IO.Path.Combine(dataDirectory, archive);
+                if (!Directory.Exists(dataDirectory) || !File.Exists(requiredArchive))
+                    return "Data\\" + archive;
+                if ((File.GetAttributes(requiredArchive) & FileAttributes.ReparsePoint) != 0 ||
+                    new FileInfo(requiredArchive).Length == 0)
+                    return "Data\\" + archive + " (archivo vacío o enlace no válido)";
+            }
             return null;
+        }
+    }
+
+    internal static class ClientPackage
+    {
+        internal static void InstallZip(string packagePath, string destination, Action<long, long, string> progress)
+        {
+            string target = System.IO.Path.GetFullPath(destination);
+            if (Directory.Exists(target) || File.Exists(target))
+                throw new IOException("La carpeta de destino ya existe. Elige una carpeta nueva para no sobrescribir archivos.");
+
+            string parent = System.IO.Path.GetDirectoryName(target);
+            Directory.CreateDirectory(parent);
+            string temporary = System.IO.Path.Combine(parent, ".azerothcore-client-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temporary);
+            bool installed = false;
+            try
+            {
+                using (FileStream file = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (ZipArchive archive = new ZipArchive(file, ZipArchiveMode.Read))
+                {
+                    long total = archive.Entries.Where(entry => !String.IsNullOrEmpty(entry.Name) &&
+                        !ManifestTools.IsExcluded(entry.FullName)).Sum(entry => entry.Length);
+                    long extracted = 0;
+                    byte[] buffer = new byte[1024 * 1024];
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        if (String.IsNullOrEmpty(entry.Name))
+                            continue;
+                        string relative = entry.FullName.Replace('\\', '/');
+                        if (ManifestTools.IsExcluded(relative))
+                            continue;
+                        if (!ManifestTools.IsSafeManifestPath(relative))
+                            throw new InvalidDataException("El paquete contiene una ruta no válida: " + entry.FullName);
+
+                        string output = System.IO.Path.GetFullPath(System.IO.Path.Combine(temporary,
+                            relative.Replace('/', System.IO.Path.DirectorySeparatorChar)));
+                        if (!output.StartsWith(temporary.TrimEnd(System.IO.Path.DirectorySeparatorChar) +
+                            System.IO.Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidDataException("El paquete contiene una ruta fuera de la carpeta de destino.");
+                        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output));
+                        using (Stream input = entry.Open())
+                        using (FileStream destinationFile = new FileStream(output, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                        {
+                            int read;
+                            while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                            {
+                                destinationFile.Write(buffer, 0, read);
+                                extracted += read;
+                                if (progress != null)
+                                    progress(extracted, total, relative);
+                            }
+                        }
+                    }
+                }
+
+                string invalidClient = ClientValidation.GetInvalidClient(temporary);
+                if (invalidClient != null)
+                    throw new InvalidDataException("El ZIP no contiene un cliente válido: falta o no coincide " + invalidClient + ".");
+
+                Directory.Move(temporary, target);
+                installed = true;
+            }
+            finally
+            {
+                if (!installed && Directory.Exists(temporary))
+                    Directory.Delete(temporary, true);
+            }
         }
     }
 

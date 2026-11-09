@@ -18,6 +18,7 @@ $references = @(
     '/reference:System.dll',
     '/reference:System.Core.dll',
     '/reference:System.Drawing.dll',
+    '/reference:System.IO.Compression.dll',
     '/reference:System.Runtime.Serialization.dll',
     '/reference:System.Security.dll',
     '/reference:System.Windows.Forms.dll'

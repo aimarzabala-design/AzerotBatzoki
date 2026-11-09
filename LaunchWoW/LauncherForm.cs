@@ -104,7 +104,7 @@ namespace AzerothCoreLauncher
             actions.WrapContents = false;
             actions.BackColor = background;
             Controls.Add(actions);
-            Button install = MakeButton("ELEGIR CLIENTE", 0, 0, 178, 46, accent, Color.White);
+            Button install = MakeButton("CLIENTE / INSTALAR", 0, 0, 178, 46, accent, Color.White);
             Button repair = MakeButton("ABRIR CARPETA", 0, 0, 152, 46, panel, foreground);
             Button play = MakeButton("JUGAR", 0, 0, 132, 46, Color.FromArgb(50, 128, 83), Color.White);
             Button host = MakeButton("ACTIVAR CUENTAS LAN", 0, 0, 228, 46, panel, foreground);
@@ -165,6 +165,13 @@ namespace AzerothCoreLauncher
             outputBox.Location = new Point(24, 580);
             outputBox.Size = new Size(832, 128);
             Controls.Add(outputBox);
+
+            string detectedClient = FindExistingClient();
+            if (detectedClient != null)
+            {
+                targetBox.Text = detectedClient;
+                status.Text = "Cliente WoW 3.3.5a build 12340 detectado.";
+            }
 
             FormClosing += delegate(object sender, FormClosingEventArgs e)
             {
@@ -248,23 +255,27 @@ namespace AzerothCoreLauncher
 
         private void SelectClient()
         {
+            DialogResult choice = MessageBox.Show(this,
+                "Sí: seleccionar una carpeta de cliente instalada.\r\nNo: instalar desde un paquete ZIP completo.",
+                "Cliente WoW", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+            if (choice == DialogResult.Cancel)
+                return;
+            if (choice == DialogResult.No)
+            {
+                InstallClientPackage();
+                return;
+            }
+
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
                 dialog.Description = "Selecciona una carpeta de cliente WoW 3.3.5a que ya tengas instalada.";
                 dialog.SelectedPath = targetBox.Text;
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                     return;
-                if (!File.Exists(Path.Combine(dialog.SelectedPath, "Wow.exe")))
+                string invalidClient = ClientValidation.GetInvalidClient(dialog.SelectedPath);
+                if (invalidClient != null)
                 {
-                    ShowWarning("No se encontró Wow.exe en esa carpeta. Selecciona la carpeta raíz del cliente instalado.");
-                    return;
-                }
-                string missingArchive = ClientValidation.GetMissingRequiredArchive(dialog.SelectedPath);
-                if (missingArchive != null)
-                {
-                    ShowWarning("El cliente está incompleto: falta " + missingArchive + ". " +
-                        "Seleccionaste una carpeta parcial. Extrae todas las partes del cliente y comprueba que " +
-                        "Data\\interface.MPQ exista antes de seleccionarlo.");
+                    ShowWarning("La carpeta no contiene un cliente WoW 3.3.5a build 12340 completo: " + invalidClient + ".");
                     return;
                 }
                 targetBox.Text = dialog.SelectedPath;
@@ -272,12 +283,80 @@ namespace AzerothCoreLauncher
             }
         }
 
+        private void InstallClientPackage()
+        {
+            using (OpenFileDialog dialog = new OpenFileDialog())
+            {
+                dialog.Title = "Selecciona el ZIP completo del cliente WoW 3.3.5a";
+                dialog.Filter = "Paquete ZIP del cliente (*.zip)|*.zip";
+                dialog.CheckFileExists = true;
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                string package = dialog.FileName;
+                string target = targetBox.Text.Trim();
+                if (String.IsNullOrWhiteSpace(target))
+                {
+                    ShowWarning("Indica una carpeta nueva para instalar el cliente.");
+                    return;
+                }
+                string realm = realmBox.Text.Trim();
+                if (!Regex.IsMatch(realm, "^[A-Za-z0-9.-]+$"))
+                {
+                    ShowWarning("La dirección del reino debe ser una IP o nombre DNS, sin puerto ni ruta.");
+                    return;
+                }
+
+                RunOperation("Instalando cliente", delegate(Action<string> log, Action<int, string> report)
+                {
+                    ClientPackage.InstallZip(package, target, delegate(long done, long total, string path)
+                    {
+                        int percent = total <= 0 ? 0 : (int)Math.Min(99, done * 100 / total);
+                        report(percent, "Instalando " + path);
+                    });
+                    foreach (string locale in new[] { "enUS", "enGB" })
+                    {
+                        string localeDirectory = Path.Combine(target, "Data", locale);
+                        if (!Directory.Exists(localeDirectory))
+                            continue;
+                        File.WriteAllText(Path.Combine(localeDirectory, "realmlist.wtf"),
+                            "set realmlist " + realm + "\r\n", Encoding.ASCII);
+                    }
+                    BeginInvoke((MethodInvoker)delegate { targetBox.Text = target; });
+                    log("Cliente instalado y realmlist configurada: " + realm);
+                    report(100, "Cliente instalado y listo para jugar.");
+                });
+            }
+        }
+
+        private static string FindExistingClient()
+        {
+            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string[] candidates = new[]
+            {
+                Path.Combine(Application.StartupPath, "Client"),
+                Path.Combine(documents, "World of Warcraft 3.3.5a"),
+                Path.Combine(programFiles, "World of Warcraft"),
+                Path.Combine(programFilesX86, "World of Warcraft"),
+                Path.Combine(programFiles, "World of Warcraft 3.3.5a"),
+                Path.Combine(programFilesX86, "World of Warcraft 3.3.5a")
+            };
+            foreach (string candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (Directory.Exists(candidate) && ClientValidation.GetInvalidClient(candidate) == null)
+                    return candidate;
+            }
+            return null;
+        }
+
         private void OpenClientFolder()
         {
             string target = targetBox.Text.Trim();
-            if (!File.Exists(Path.Combine(target, "Wow.exe")))
+            if (ClientValidation.GetInvalidClient(target) != null)
             {
-                ShowWarning("No se encontró un cliente instalado en la carpeta seleccionada.");
+                ShowWarning("No se encontró un cliente WoW 3.3.5a build 12340 completo en la carpeta seleccionada.");
                 return;
             }
             ProcessStartInfo start = new ProcessStartInfo();
@@ -386,6 +465,11 @@ namespace AzerothCoreLauncher
             return request;
         }
 
+        internal static Uri BuildRegistrationUri(Uri server)
+        {
+            return new Uri(server, "/api/register");
+        }
+
         private void Play()
         {
             string realm = realmBox.Text.Trim();
@@ -401,28 +485,20 @@ namespace AzerothCoreLauncher
                 ShowWarning("No se encontró Wow.exe. Instala o repara el cliente primero.");
                 return;
             }
-            string missingArchive = ClientValidation.GetMissingRequiredArchive(target);
-            if (missingArchive != null)
+            string invalidClient = ClientValidation.GetInvalidClient(target);
+            if (invalidClient != null)
             {
-                ShowWarning("No se puede iniciar este cliente: falta " + missingArchive + ". " +
-                    "La carpeta seleccionada está incompleta y WoW muestra “Failed to open archive interface.MPQ”. " +
-                    "Extrae todas las partes de una copia completa del cliente y vuelve a seleccionar su carpeta raíz.");
-                return;
-            }
-            string[] locales = new[] { "enUS", "enGB" }
-                .Select(locale => Path.Combine(target, "Data", locale))
-                .Where(Directory.Exists)
-                .ToArray();
-            if (locales.Length == 0)
-            {
-                ShowWarning("No se encontró una carpeta de idioma válida en Data.");
+                ShowWarning("No se puede iniciar este cliente: falta o no coincide " + invalidClient + ".");
                 return;
             }
 
             try
             {
-                foreach (string locale in locales)
+                foreach (string localeName in new[] { "enUS", "enGB" })
                 {
+                    string locale = Path.Combine(target, "Data", localeName);
+                    if (!Directory.Exists(locale))
+                        continue;
                     if ((File.GetAttributes(locale) & FileAttributes.ReparsePoint) != 0)
                         throw new InvalidDataException("La carpeta de idioma es un enlace y no es segura: " + locale);
                     string realmlist = Path.Combine(locale, "realmlist.wtf");
@@ -499,7 +575,8 @@ namespace AzerothCoreLauncher
             RunOperation("Creando cuenta", delegate(Action<string> log, Action<int, string> report)
             {
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-                HttpWebRequest request = CreatePinnedRequest(server, pin);
+                Uri registrationUri = BuildRegistrationUri(server);
+                HttpWebRequest request = CreatePinnedRequest(registrationUri, pin);
                 request.Method = "POST";
                 request.ContentType = "application/json";
                 request.Timeout = 90000;

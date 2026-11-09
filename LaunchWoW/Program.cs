@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Windows.Forms;
 using System.IO;
 using System.Linq;
@@ -61,11 +62,15 @@ namespace AzerothCoreLauncher
                 LauncherServer.IsPrivateAddress("8.8.8.8") ||
                 !LauncherServer.IsValidAccount("player_1", "secret123") ||
                 LauncherServer.IsValidAccount("bad user", "secret123") ||
+                !ClientValidation.IsRequiredBuild(3, 3, 5, 12340) ||
+                ClientValidation.IsRequiredBuild(3, 3, 5, 12341) ||
+                LauncherForm.BuildRegistrationUri(new Uri("https://192.168.201.213:8787/")).AbsolutePath != "/api/register" ||
                 LauncherForm.DefaultServerAddress != "https://192.168.201.213:8787" ||
                 LauncherForm.DefaultRealmAddress != "192.168.201.213" ||
                 !TestManifestSerialization() ||
                 !TestManifestBuild() ||
-                !TestClientValidation())
+                !TestClientValidation() ||
+                !TestClientPackage())
             {
                 Console.Error.WriteLine("Falló una comprobación interna.");
                 return 1;
@@ -132,6 +137,9 @@ namespace AzerothCoreLauncher
                     return false;
                 string archive = Path.Combine(data, "interface.MPQ");
                 File.WriteAllBytes(archive, new byte[] { 1 });
+                if (ClientValidation.GetMissingRequiredArchive(root) != "Data\\common.MPQ")
+                    return false;
+                File.WriteAllBytes(Path.Combine(data, "common.MPQ"), new byte[] { 1 });
                 if (ClientValidation.GetMissingRequiredArchive(root) != null)
                     return false;
                 File.WriteAllBytes(archive, new byte[0]);
@@ -142,6 +150,63 @@ namespace AzerothCoreLauncher
                 if (Directory.Exists(root))
                     Directory.Delete(root, true);
             }
+        }
+
+        private static bool TestClientPackage()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "AzerothCoreClientPackage-" + Guid.NewGuid().ToString("N"));
+            string zip = root + ".zip";
+            string target = Path.Combine(root, "installed");
+            string gameExecutable = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Wow.exe");
+            try
+            {
+                if (!File.Exists(gameExecutable))
+                    return false;
+                FileVersionInfo version = FileVersionInfo.GetVersionInfo(gameExecutable);
+                if (!ClientValidation.IsRequiredBuild(version.FileMajorPart, version.FileMinorPart,
+                    version.FileBuildPart, version.FilePrivatePart))
+                    return false;
+
+                using (FileStream file = new FileStream(zip, FileMode.CreateNew))
+                using (System.IO.Compression.ZipArchive archive = new System.IO.Compression.ZipArchive(file,
+                    System.IO.Compression.ZipArchiveMode.Create))
+                {
+                    AddPackageFile(archive, "Wow.exe", gameExecutable);
+                    AddPackageEntry(archive, "Data/interface.MPQ", "interface");
+                    AddPackageEntry(archive, "Data/common.MPQ", "common");
+                    AddPackageEntry(archive, "Data/enUS/locale.MPQ", "locale");
+                    AddPackageEntry(archive, "WTF/Account/private.txt", "private");
+                    AddPackageEntry(archive, "Screenshots/private.jpg", "private");
+                }
+                ClientPackage.InstallZip(zip, target, null);
+                return ClientValidation.GetInvalidClient(target) == null &&
+                       ManifestTools.HashFile(Path.Combine(target, "Wow.exe")) == ManifestTools.HashFile(gameExecutable) &&
+                       !Directory.Exists(Path.Combine(target, "WTF")) &&
+                       !Directory.Exists(Path.Combine(target, "Screenshots"));
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                    Directory.Delete(root, true);
+                if (File.Exists(zip))
+                    File.Delete(zip);
+            }
+        }
+
+        private static void AddPackageEntry(System.IO.Compression.ZipArchive archive, string path, string content)
+        {
+            using (Stream output = archive.CreateEntry(path).Open())
+            {
+                byte[] data = Encoding.UTF8.GetBytes(content);
+                output.Write(data, 0, data.Length);
+            }
+        }
+
+        private static void AddPackageFile(System.IO.Compression.ZipArchive archive, string path, string source)
+        {
+            using (Stream input = File.OpenRead(source))
+            using (Stream output = archive.CreateEntry(path).Open())
+                input.CopyTo(output);
         }
     }
 }
