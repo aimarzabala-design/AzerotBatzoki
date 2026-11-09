@@ -1,0 +1,38 @@
+﻿REVISION 02/11/2026 — Windows 10 Pro x64
+- Launcher comprueba Data\interface.MPQ al seleccionar/iniciar cliente y avisa cuando la carpeta elegida está incompleta.
+- Launcher cliente convertido a app de escritorio WinForms nativa C#; retirado Go de LaunchWoW. Selecciona cliente local, configura realm y juega; registro HTTPS LAN no publica archivos del cliente.
+- Servicio de cuentas desacoplado del cliente local; puerto 8787 con regla de firewall limitada a subred privada y huella TLS.
+- Accesos de inicio y compilación/checksums del paquete integrados con el nuevo launcher.
+- Permisos con SID y separación de scripts protegidos, datos WSL y registros.
+- Autoarranque limitado; tarea elevada de red con IPv4 validada y netsh de SystemDirectory.
+- Credenciales protegidas y bootstrap eliminado; conservar contraseña existente.
+- Launcher temporal único, códigos/argumentos y entorno PSModulePath corregidos.
+- Backup atómico; firma MSI del kernel y solicitud de reinicio comprobadas.
+- Modo EXE -CheckOnly, pruebas Go/PowerShell/Bash y fuentes entregadas.
+- Ver INFORME_REVISION.md. Instalación completa en destino pendiente.
+
+HISTORIAL DEL PAQUETE ORIGINAL:
+CAMBIOS DE LA VERSION CORREGIDA — 2 de noviembre de 2026
+
+- Corregido el script PowerShell incluido en el instalador.
+- Eliminado el terminador heredado `EOF` sobrante del script Bash de instalación.
+- Comprobados los delimitadores de las here-strings: todos tienen cierre y el marcador de cierre está al inicio de su línea.
+- Reconstruido Instalar_WoW_Server.exe desde main.go e installer.ps1; el EXE contiene exactamente el script PowerShell incluido en este ZIP.
+- Ajustada la configuración WSL2 para 4 GB de RAM (2 GB de memoria y 4 GB de swap).
+- Desactivado el proceso de compilación opcional de Eluna TypeScript manteniendo su servicio inactivo para respetar la dependencia de worldserver; Lua sigue disponible.
+- Corregidas las instrucciones para crear una cuenta (la contraseña se confirma dos veces).
+
+AVISO DE VALIDACIÓN
+Se hicieron comprobaciones estáticas del script y del contenido integrado en el EXE. No se pudo ejecutar una instalación completa en Windows 10 en esta sesión. La instalación real depende de la compilación de Windows, la virtualización, la conexión y las imágenes remotas disponibles.
+
+
+CORRECCIÓN SHA-256 — 2 de noviembre de 2026
+
+- Corregida la lectura de la lista SHA256SUMS oficial de Ubuntu para Windows PowerShell 5.1.
+- La lista se descarga a un archivo local y se analiza por líneas con una expresión regular que valida exactamente 64 caracteres hexadecimales y el nombre exacto de la imagen.
+- Se muestran errores diferenciados para descarga/lectura y para entrada ausente; no se omite la comprobación de integridad.
+- Si la imagen Ubuntu ya está en C:\WoWServer, el instalador puede validarla sin volver a descargarla.
+- Reconstruido el ejecutable Windows x64 desde el PowerShell actualizado.
+
+VALIDACIÓN DE ESTA CORRECCIÓN
+La expresión de análisis se probó contra la línea oficial publicada por Ubuntu para la imagen Jammy WSL AMD64. El archivo oficial consultado es https://cloud-images.ubuntu.com/wsl/jammy/current/SHA256SUMS. No se ejecutó una instalación completa en Windows en esta sesión.

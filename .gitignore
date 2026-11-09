@@ -1,0 +1,20 @@
+# Client/game data and archives are deliberately not part of this source repository.
+/WOWCLIENTE/
+/wowcliente-distribucion/
+**/*.MPQ
+**/*.zip
+**/*.dmp
+**/WTF/
+**/Cache/
+**/Errors/
+**/Logs/
+**/Screenshots/
+
+# Local server credentials, certificates, and generated state.
+.env
+db-password.txt
+server-certificate.pfx
+server-key.pem
+server-cert.pem
+*.partial
+.test-work/
