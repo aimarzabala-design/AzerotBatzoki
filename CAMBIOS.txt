@@ -1,5 +1,6 @@
-﻿REVISION 02/11/2026 — Windows 10 Pro x64
-- Launcher comprueba Data\interface.MPQ al seleccionar/iniciar cliente y avisa cuando la carpeta elegida está incompleta.
+REVISION 09/11/2026 — Windows 10 Pro x64
+- Launcher deja de exigir Data\interface.MPQ; selecciona e inicia el cliente 3.3.5a build 12340 si encuentra Wow.exe, Data\common.MPQ y una carpeta de idioma compatible.
+- README y LEEME actualizados con los requisitos reales del launcher, el estado LAN de 192.168.201.213 y la exclusión del cliente del repositorio.
 - Launcher cliente convertido a app de escritorio WinForms nativa C#; retirado Go de LaunchWoW. Selecciona cliente local, configura realm y juega; registro HTTPS LAN no publica archivos del cliente.
 - Servicio de cuentas desacoplado del cliente local; puerto 8787 con regla de firewall limitada a subred privada y huella TLS.
 - Accesos de inicio y compilación/checksums del paquete integrados con el nuevo launcher.

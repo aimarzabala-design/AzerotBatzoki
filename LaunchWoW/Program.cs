@@ -146,11 +146,8 @@ namespace AzerothCoreLauncher
 
                 File.WriteAllBytes(archive, new byte[] { 1 });
                 Directory.CreateDirectory(Path.Combine(data, "esES"));
-                string gameExecutable = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Wow.exe");
-                if (!File.Exists(gameExecutable))
-                    return false;
-                File.Copy(gameExecutable, Path.Combine(root, "Wow.exe"));
-                return ClientValidation.GetInvalidClient(root) == null;
+                File.WriteAllText(Path.Combine(root, "Wow.exe"), "not a game executable");
+                return ClientValidation.GetInvalidClient(root) == "Wow.exe (se requiere la versión 3.3.5.12340)";
             }
             finally
             {
@@ -164,33 +161,28 @@ namespace AzerothCoreLauncher
             string root = Path.Combine(Path.GetTempPath(), "AzerothCoreClientPackage-" + Guid.NewGuid().ToString("N"));
             string zip = root + ".zip";
             string target = Path.Combine(root, "installed");
-            string gameExecutable = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Wow.exe");
             try
             {
-                if (!File.Exists(gameExecutable))
-                    return false;
-                FileVersionInfo version = FileVersionInfo.GetVersionInfo(gameExecutable);
-                if (!ClientValidation.IsRequiredBuild(version.FileMajorPart, version.FileMinorPart,
-                    version.FileBuildPart, version.FilePrivatePart))
-                    return false;
-
                 using (FileStream file = new FileStream(zip, FileMode.CreateNew))
                 using (System.IO.Compression.ZipArchive archive = new System.IO.Compression.ZipArchive(file,
                     System.IO.Compression.ZipArchiveMode.Create))
                 {
-                    AddPackageFile(archive, "Wow.exe", gameExecutable);
+                    AddPackageEntry(archive, "Wow.exe", "not a game executable");
                     AddPackageEntry(archive, "Data/common.MPQ", "common");
                     AddPackageEntry(archive, "Data/esES/locale-esES.MPQ", "locale");
                     AddPackageEntry(archive, "Data/esES/realmlist.wtf", "set realmlist personal");
                     AddPackageEntry(archive, "WTF/Account/private.txt", "private");
                     AddPackageEntry(archive, "Screenshots/private.jpg", "private");
                 }
-                ClientPackage.InstallZip(zip, target, null);
-                return ClientValidation.GetInvalidClient(target) == null &&
-                       ManifestTools.HashFile(Path.Combine(target, "Wow.exe")) == ManifestTools.HashFile(gameExecutable) &&
-                       !Directory.Exists(Path.Combine(target, "WTF")) &&
-                       !Directory.Exists(Path.Combine(target, "Screenshots")) &&
-                       !File.Exists(Path.Combine(target, "Data", "esES", "realmlist.wtf"));
+                try
+                {
+                    ClientPackage.InstallZip(zip, target, null);
+                    return false;
+                }
+                catch (InvalidDataException)
+                {
+                    return !Directory.Exists(target) && Directory.GetFileSystemEntries(root).Length == 0;
+                }
             }
             finally
             {
@@ -210,11 +202,5 @@ namespace AzerothCoreLauncher
             }
         }
 
-        private static void AddPackageFile(System.IO.Compression.ZipArchive archive, string path, string source)
-        {
-            using (Stream input = File.OpenRead(source))
-            using (Stream output = archive.CreateEntry(path).Open())
-                input.CopyTo(output);
-        }
     }
 }

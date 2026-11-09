@@ -1,9 +1,14 @@
 # Client/game data and archives are deliberately not part of this source repository.
 /WOWCLIENTE/
 /wowcliente-distribucion/
-**/*.MPQ
-**/*.zip
+**/*.[mM][pP][qQ]
+**/*.[zZ][iI][pP]
+**/*.[zZ][iI][pP].*
 **/*.dmp
+**/Wow.exe
+**/wow.exe
+**/Wow-64.exe
+**/wow-64.exe
 **/WTF/
 **/Cache/
 **/Errors/

@@ -39,16 +39,16 @@ Registros: C:\WoWServer\logs\instalacion.log, logs\inicio-automatico.log y netwo
 
 ## Launcher de escritorio
 
-Abre Iniciar_Client_WoW.bat, Iniciar_Client_GUI.ps1 o LaunchWoW\LaunchWoW.exe. La app no incluye el cliente. Selecciona con ELEGIR CLIENTE una copia completa 3.3.5a que ya tengas; debe incluir Wow.exe, Data\interface.MPQ y la carpeta de idioma. JUGAR comprueba esos requisitos, configura realmlist.wtf con 192.168.201.213 y ejecuta Wow.exe. Si falta Data\interface.MPQ, extrae todas las partes y vuelve a elegir la carpeta raíz.
+Abre Iniciar_Client_WoW.bat, Iniciar_Client_GUI.ps1 o LaunchWoW\LaunchWoW.exe. La app no incluye el cliente. Selecciona con ELEGIR CLIENTE una instalación compatible WoW 3.3.5a build 12340 o instala desde un ZIP completo que ya tengas. El cliente debe incluir Wow.exe, Data\common.MPQ y una carpeta de idioma (Data\enUS, Data\enGB o Data\esES). JUGAR configura realmlist.wtf con 192.168.201.213 y ejecuta Wow.exe. El launcher no exige Data\interface.MPQ.
 
-En el portátil servidor, pulsa ACTIVAR CUENTAS LAN y comparte la huella SHA-256 por un canal independiente. Los jugadores introducen esa huella y usan REGISTRAR CUENTA; el servicio crea la cuenta en AzerothCore mediante WSL, solo desde la red local y con WoWServer/worldserver activos. Usa TCP 8787 limitado a la subred privada. No lo expongas en el router ni a Internet.
+La dirección configurada 192.168.201.213 es privada y solo es accesible desde la red local que contiene el portátil servidor; no permite jugar desde Internet. En el portátil servidor, pulsa ACTIVAR CUENTAS LAN y comparte la huella SHA-256 por un canal independiente. Los jugadores introducen esa huella y usan REGISTRAR CUENTA; el servicio crea la cuenta en AzerothCore mediante WSL, solo desde la red local y con WoWServer/worldserver activos. Usa TCP 8787 limitado a la subred privada. No lo expongas en el router ni a Internet.
 
 El launcher está implementado en C# WinForms; no requiere Go para ejecutarse. Para recompilarlo, ejecuta LaunchWoW\Compilar.ps1. Para compilar el paquete completo, ejecuta Compilar.ps1.
 Requiere .NET Framework 4.8, incluido en las versiones de Windows 10 indicadas arriba.
 
 ## Estado de la revisión
 
-Se corrigieron permisos, tratamiento de credenciales, códigos de error, backups incompletos, entorno de PowerShell y arranque/red. Se reconstruyó el EXE y pasaron las pruebas aisladas. No se ha ejecutado una instalación completa en Windows 10 Pro ni una conexión de juego; no se garantiza todavía el funcionamiento de extremo a extremo. Lee INFORME_REVISION.md para ver evidencia y pruebas pendientes.
+Se corrigieron permisos, tratamiento de credenciales, códigos de error, backups incompletos, entorno de PowerShell y arranque/red. El launcher comprueba la presencia de Wow.exe y un idioma compatible, no la de Data\interface.MPQ. Se reconstruyó el EXE y pasaron las pruebas aisladas. No se ha ejecutado una instalación completa en Windows 10 Pro ni se ha verificado el inicio de sesión desde otro PC de la LAN; no se garantiza todavía el funcionamiento de extremo a extremo. Lee INFORME_REVISION.md para ver evidencia y pruebas pendientes.
 
 El EXE no está firmado y Windows puede mostrar editor desconocido. SHA256SUMS-local.txt permite comparar el contenido recibido. Las imágenes Docker mantienen etiquetas móviles del proyecto original.
 

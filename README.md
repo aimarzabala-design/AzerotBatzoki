@@ -1,19 +1,23 @@
-# AzerothCore Windows Installer and Desktop Launcher
+# AzerothCore Windows Installer and Launcher
 
-This private repository contains the Windows PowerShell installer for an AzerothCore server and a native C# WinForms desktop launcher.
+This repository contains the Windows PowerShell installer for an AzerothCore server and a native C# WinForms desktop launcher.
 
-## What is included
+## Quick start
 
-- Server installer source and its Windows x64 executable.
-- Desktop launcher source and its Windows executable.
-- Build and non-destructive test scripts.
-- Spanish installation, review, and change documentation.
+1. Download the repository ZIP and extract it to a local folder.
+2. On the Windows 10 Pro x64 server PC, run `Instalar_WoW_Server.exe` as administrator and follow the prompts. Allow time for WSL, Docker, and AzerothCore to install.
+3. Start the server and verify that authserver and worldserver are running.
+4. On each player PC, run `LaunchWoW\LaunchWoW.exe` and select an existing compatible client, or choose the option to install from a client ZIP you already have.
+5. Press **JUGAR**. Create accounts through the launcher's LAN registration flow or with the server's account-management commands.
 
-The desktop launcher defaults to the LAN realm address `192.168.201.213`. It detects complete clients in common locations, lets a player select another installed client, or installs one from a complete ZIP package. The client must be WoW 3.3.5a build 12340 and include `Wow.exe`, `Data\common.MPQ`, and one locale folder: `Data\enUS`, `Data\enGB`, or `Data\esES`. ZIP packages must have `Wow.exe` at their root. The installer rejects existing destination folders and omits personal settings, caches, logs, screenshots, and crash dumps. It also provides LAN account registration through a TLS-pinned HTTPS service at `/api/register`. The account service is limited to private LAN clients; do not expose its port to the public Internet.
+See [LEEME.md](./LEEME.md) for detailed installation and troubleshooting instructions.
 
-## The client package is not included
+## Network and client requirements
 
-`LaunchWoW\Wow.exe` is the build 12340 executable used by the launcher and its tests. It is not a complete playable client: the repository has no game MPQ archives or locale data. Supply a complete client ZIP separately for installation or a full game test. Keep personal settings, caches, logs, screenshots, and crash dumps out of that package.
+- The launcher is configured for realm and account service address `192.168.201.213`. This is a private LAN address and only works for devices that can reach the server on the same local network. Internet play requires a separately planned public network setup; the installer does not configure router access.
+- The account-registration service uses TLS certificate pinning. Activate it on the server PC and provide its certificate fingerprint to players through a separate trusted channel. Do not expose port 8787 to the public Internet.
+- The repository does not include or download a WoW client, game executables, MPQ archives, client ZIP parts, add-ons bundled with a client, or per-user game data. Each player must supply a compatible client or client ZIP separately. The launcher checks for WoW 3.3.5a build 12340, `Wow.exe`, `Data\common.MPQ`, and a locale directory (`Data\enUS`, `Data\enGB`, or `Data\esES`). It does not require `Data\interface.MPQ`.
+- The server must be installed and running before players can log in. The launcher and installer do not themselves host a public game service.
 
 The `.gitignore` excludes common client assets and local credentials as a safeguard. Do not remove these exclusions to commit client archives or secrets.
 
@@ -25,23 +29,23 @@ Requirements:
 - Go, Git Bash, and the .NET Framework 4.8 C# compiler for the full package.
 - .NET Framework 4.8 to run the desktop launcher.
 
-Run the complete package build and isolated tests:
+Build the complete package and run the isolated tests:
 
 ```powershell
 .\Compilar.ps1
 ```
 
-Build and self-test only the desktop launcher:
+To build and self-test only the desktop launcher:
 
 ```powershell
 .\LaunchWoW\Compilar.ps1
 ```
 
-`Test-Installer.ps1` uses a simulated Docker command and does not install WSL or change firewall rules or scheduled tasks.
+`Test-Installer.ps1` uses a simulated Docker command and does not install WSL or change firewall rules or scheduled tasks. Passing build tests is not a substitute for testing the server installation and a real login on the target network.
 
 ## Collaboration
 
-This repository is private. The owner must invite collaborators through GitHub repository settings before they can access it. Review all changes and test the installer on a disposable or backed-up Windows installation before using it on a server with valuable data.
+If the repository is private, the owner must invite collaborators through GitHub repository settings before they can download it. Review all changes and test the installer on a disposable or backed-up Windows installation before using it on a server with valuable data.
 
 ## Licensing
 
