@@ -9,7 +9,7 @@ This private repository contains the Windows PowerShell installer for an Azeroth
 - Build and non-destructive test scripts.
 - Spanish installation, review, and change documentation.
 
-The desktop launcher defaults to the LAN realm address `192.168.201.213`. It detects complete clients in common locations, lets a player select another installed client, or installs one from a complete ZIP package. The client must be WoW 3.3.5a build 12340 and include `Wow.exe`, `Data\interface.MPQ`, `Data\common.MPQ`, and `Data\enUS` or `Data\enGB`. ZIP packages must have `Wow.exe` at their root. The installer rejects existing destination folders and omits personal settings, caches, logs, screenshots, and crash dumps. It also provides LAN account registration through a TLS-pinned HTTPS service at `/api/register`. The account service is limited to private LAN clients; do not expose its port to the public Internet.
+The desktop launcher defaults to the LAN realm address `192.168.201.213`. It detects complete clients in common locations, lets a player select another installed client, or installs one from a complete ZIP package. The client must be WoW 3.3.5a build 12340 and include `Wow.exe`, `Data\common.MPQ`, and one locale folder: `Data\enUS`, `Data\enGB`, or `Data\esES`. ZIP packages must have `Wow.exe` at their root. The installer rejects existing destination folders and omits personal settings, caches, logs, screenshots, and crash dumps. It also provides LAN account registration through a TLS-pinned HTTPS service at `/api/register`. The account service is limited to private LAN clients; do not expose its port to the public Internet.
 
 ## The client package is not included
 

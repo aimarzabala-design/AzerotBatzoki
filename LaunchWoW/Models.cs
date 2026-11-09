@@ -219,15 +219,16 @@ namespace AzerothCoreLauncher
             if (missingArchive != null)
                 return missingArchive;
             if (!Directory.Exists(System.IO.Path.Combine(clientDirectory, "Data", "enUS")) &&
-                !Directory.Exists(System.IO.Path.Combine(clientDirectory, "Data", "enGB")))
-                return "Data\\enUS o Data\\enGB";
+                !Directory.Exists(System.IO.Path.Combine(clientDirectory, "Data", "enGB")) &&
+                !Directory.Exists(System.IO.Path.Combine(clientDirectory, "Data", "esES")))
+                return "Data\\enUS, Data\\enGB o Data\\esES";
             return null;
         }
 
         internal static string GetMissingRequiredArchive(string clientDirectory)
         {
             string dataDirectory = System.IO.Path.Combine(clientDirectory, "Data");
-            foreach (string archive in new[] { "interface.MPQ", "common.MPQ" })
+            foreach (string archive in new[] { "common.MPQ" })
             {
                 string requiredArchive = System.IO.Path.Combine(dataDirectory, archive);
                 if (!Directory.Exists(dataDirectory) || !File.Exists(requiredArchive))

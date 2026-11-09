@@ -314,7 +314,7 @@ namespace AzerothCoreLauncher
                         int percent = total <= 0 ? 0 : (int)Math.Min(99, done * 100 / total);
                         report(percent, "Instalando " + path);
                     });
-                    foreach (string locale in new[] { "enUS", "enGB" })
+                    foreach (string locale in new[] { "enUS", "enGB", "esES" })
                     {
                         string localeDirectory = Path.Combine(target, "Data", locale);
                         if (!Directory.Exists(localeDirectory))
@@ -494,7 +494,7 @@ namespace AzerothCoreLauncher
 
             try
             {
-                foreach (string localeName in new[] { "enUS", "enGB" })
+                foreach (string localeName in new[] { "enUS", "enGB", "esES" })
                 {
                     string locale = Path.Combine(target, "Data", localeName);
                     if (!Directory.Exists(locale))

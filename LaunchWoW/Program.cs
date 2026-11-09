@@ -55,6 +55,7 @@ namespace AzerothCoreLauncher
         {
             if (!ManifestTools.IsExcluded("WTF\\Config.wtf") ||
                 !ManifestTools.IsExcluded("Data\\enUS\\realmlist.wtf") ||
+                !ManifestTools.IsExcluded("Data\\esES\\realmlist.wtf") ||
                 ManifestTools.IsExcluded("Data\\common.MPQ") ||
                 ManifestTools.IsSafeManifestPath("../outside") ||
                 ManifestTools.IsSafeManifestPath("C:/outside") ||
@@ -133,17 +134,23 @@ namespace AzerothCoreLauncher
             try
             {
                 Directory.CreateDirectory(data);
-                if (ClientValidation.GetMissingRequiredArchive(root) != "Data\\interface.MPQ")
-                    return false;
-                string archive = Path.Combine(data, "interface.MPQ");
-                File.WriteAllBytes(archive, new byte[] { 1 });
                 if (ClientValidation.GetMissingRequiredArchive(root) != "Data\\common.MPQ")
                     return false;
-                File.WriteAllBytes(Path.Combine(data, "common.MPQ"), new byte[] { 1 });
+                string archive = Path.Combine(data, "common.MPQ");
+                File.WriteAllBytes(archive, new byte[] { 1 });
                 if (ClientValidation.GetMissingRequiredArchive(root) != null)
                     return false;
                 File.WriteAllBytes(archive, new byte[0]);
-                return ClientValidation.GetMissingRequiredArchive(root) != null;
+                if (ClientValidation.GetMissingRequiredArchive(root) == null)
+                    return false;
+
+                File.WriteAllBytes(archive, new byte[] { 1 });
+                Directory.CreateDirectory(Path.Combine(data, "esES"));
+                string gameExecutable = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Wow.exe");
+                if (!File.Exists(gameExecutable))
+                    return false;
+                File.Copy(gameExecutable, Path.Combine(root, "Wow.exe"));
+                return ClientValidation.GetInvalidClient(root) == null;
             }
             finally
             {
@@ -172,9 +179,9 @@ namespace AzerothCoreLauncher
                     System.IO.Compression.ZipArchiveMode.Create))
                 {
                     AddPackageFile(archive, "Wow.exe", gameExecutable);
-                    AddPackageEntry(archive, "Data/interface.MPQ", "interface");
                     AddPackageEntry(archive, "Data/common.MPQ", "common");
-                    AddPackageEntry(archive, "Data/enUS/locale.MPQ", "locale");
+                    AddPackageEntry(archive, "Data/esES/locale-esES.MPQ", "locale");
+                    AddPackageEntry(archive, "Data/esES/realmlist.wtf", "set realmlist personal");
                     AddPackageEntry(archive, "WTF/Account/private.txt", "private");
                     AddPackageEntry(archive, "Screenshots/private.jpg", "private");
                 }
@@ -182,7 +189,8 @@ namespace AzerothCoreLauncher
                 return ClientValidation.GetInvalidClient(target) == null &&
                        ManifestTools.HashFile(Path.Combine(target, "Wow.exe")) == ManifestTools.HashFile(gameExecutable) &&
                        !Directory.Exists(Path.Combine(target, "WTF")) &&
-                       !Directory.Exists(Path.Combine(target, "Screenshots"));
+                       !Directory.Exists(Path.Combine(target, "Screenshots")) &&
+                       !File.Exists(Path.Combine(target, "Data", "esES", "realmlist.wtf"));
             }
             finally
             {
