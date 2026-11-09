@@ -51,6 +51,6 @@ El EXE no tiene firma digital. El manifiesto SHA-256 sirve para detectar diferen
 3. En `Estado_WoW_Server.bat`, comprobar MySQL, authserver y worldserver. Las tareas de importación/datos pueden terminar con código 0 y quedar detenidas: es normal.
 4. Crear una cuenta y conectar un cliente compatible 3.3.5a, build 12340, con el realmlist configurado. Comprobar entrada efectiva al mundo.
 5. Cerrar sesión/reiniciar y comprobar autoarranque y conexión LAN. Revisar `logs\inicio-automatico.log` y `network-logs\red-lan.log`.
-6. Crear una copia y validar su restauración en una instancia separada. Confirmar que DB/SOAP no se publican en LAN y que la regla de juego solo permite la subred privada.
+6. Crear una copia y validar su restauración en una instancia separada. Confirmar que DB/SOAP no se publican en LAN y que la regla de juego solo permite la subred local en cualquier perfil de red.
 
 Estos pasos pendientes son necesarios para afirmar que el instalador funciona de extremo a extremo en el equipo de destino.

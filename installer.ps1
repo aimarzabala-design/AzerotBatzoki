@@ -659,11 +659,17 @@ try {
 
     # Restrict inbound game traffic to the local subnet and private Windows profile.
     try {
-        if (-not (Get-NetFirewallRule -DisplayName 'AzerothCore WoW LAN' -ErrorAction SilentlyContinue)) {
-            New-NetFirewallRule -DisplayName 'AzerothCore WoW LAN' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3724,8085 -Profile Private -RemoteAddress LocalSubnet | Out-Null
+        $gameRule = Get-NetFirewallRule -DisplayName 'AzerothCore WoW LAN' -ErrorAction SilentlyContinue
+        if ($gameRule) {
+            Set-NetFirewallRule -InputObject $gameRule -Profile Any
+        } else {
+            New-NetFirewallRule -DisplayName 'AzerothCore WoW LAN' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3724,8085 -Profile Any -RemoteAddress LocalSubnet | Out-Null
         }
-        if (-not (Get-NetFirewallRule -DisplayName 'AzerothCore Accounts LAN' -ErrorAction SilentlyContinue)) {
-            New-NetFirewallRule -DisplayName 'AzerothCore Accounts LAN' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8787 -Profile Private -RemoteAddress LocalSubnet | Out-Null
+        $accountsRule = Get-NetFirewallRule -DisplayName 'AzerothCore Accounts LAN' -ErrorAction SilentlyContinue
+        if ($accountsRule) {
+            Set-NetFirewallRule -InputObject $accountsRule -Profile Any
+        } else {
+            New-NetFirewallRule -DisplayName 'AzerothCore Accounts LAN' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8787 -Profile Any -RemoteAddress LocalSubnet | Out-Null
         }
     } catch { Write-Host 'No se pudieron crear las reglas de firewall automáticamente; el servidor seguirá siendo accesible localmente.' -ForegroundColor Yellow }
     try { Set-Service -Name iphlpsvc -StartupType Automatic -ErrorAction SilentlyContinue } catch {}

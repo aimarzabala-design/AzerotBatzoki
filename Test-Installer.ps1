@@ -4,8 +4,10 @@ $tokens = $null; $errors = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($InstallerPath, [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
 $installerText = Get-Content -LiteralPath $InstallerPath -Raw
-if ($installerText -notmatch "New-NetFirewallRule\s+-DisplayName 'AzerothCore Accounts LAN'.*?-LocalPort 8787.*?-Profile Private.*?-RemoteAddress LocalSubnet") {
-    throw 'El servicio de cuentas no esta restringido al puerto 8787 y la subred privada'
+if ($installerText -notmatch "New-NetFirewallRule\s+-DisplayName 'AzerothCore Accounts LAN'.*?-LocalPort 8787.*?-Profile Any.*?-RemoteAddress LocalSubnet" -or
+    $installerText -notmatch "New-NetFirewallRule\s+-DisplayName 'AzerothCore WoW LAN'.*?-LocalPort 3724,8085.*?-Profile Any.*?-RemoteAddress LocalSubnet" -or
+    $installerText -notmatch "Set-NetFirewallRule\s+-InputObject .*?-Profile Any") {
+    throw 'Las reglas del juego y las cuentas deben cubrir cualquier perfil, limitadas a la subred local'
 }
 # Load only the ACL builders and capture their result in memory; no system ACL is changed.
 function Set-Acl { param($LiteralPath, $AclObject) $script:CapturedAcl = $AclObject }

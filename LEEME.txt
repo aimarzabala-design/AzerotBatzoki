@@ -33,7 +33,7 @@ Para salir de la consola sin apagar worldserver: Ctrl+P y después Ctrl+Q. No us
 
 Configura la dirección del reino con Configurar_IP_WoW.bat: 127.0.0.1 para este PC, o la IP local del servidor para LAN. El cliente debe ser compatible con WoW 3.3.5a build 12340 y tener su realmlist configurado. No se incluye ni descarga el cliente comercial.
 
-El firewall solo permite los puertos del juego 3724/8085 desde la subred privada. No se configura el router ni el acceso desde Internet. MySQL y SOAP quedan en localhost. El autoarranque del servidor usa permisos limitados; una tarea separada configura la red con elevación.
+El firewall solo permite los puertos del juego 3724/8085 desde la subred local, incluso si Windows clasifica la Wi-Fi como pública. No se configura el router ni el acceso desde Internet. MySQL y SOAP quedan en localhost. El autoarranque del servidor usa permisos limitados; una tarea separada configura la red con elevación.
 
 Registros: C:\WoWServer\logs\instalacion.log, logs\inicio-automatico.log y network-logs\red-lan.log. Copias SQL: /opt/azerothcore/backups dentro de WSL.
 
@@ -41,7 +41,7 @@ Registros: C:\WoWServer\logs\instalacion.log, logs\inicio-automatico.log y netwo
 
 Abre Iniciar_Client_WoW.bat, Iniciar_Client_GUI.ps1 o LaunchWoW\LaunchWoW.exe. La app no incluye el cliente. Selecciona con ELEGIR CLIENTE una instalación compatible WoW 3.3.5a build 12340 o instala desde un ZIP completo que ya tengas. El cliente debe incluir Wow.exe, Data\common.MPQ y una carpeta de idioma (Data\enUS, Data\enGB o Data\esES). JUGAR configura realmlist.wtf con 192.168.201.213 y ejecuta Wow.exe. El launcher no exige Data\interface.MPQ.
 
-La dirección configurada 192.168.201.213 es privada y solo es accesible desde la red local que contiene el portátil servidor; no permite jugar desde Internet. En el portátil servidor, pulsa ACTIVAR CUENTAS LAN y comparte la huella SHA-256 por un canal independiente. Los jugadores introducen esa huella y usan REGISTRAR CUENTA; el servicio crea la cuenta en AzerothCore mediante WSL, solo desde la red local y con WoWServer/worldserver activos. Usa TCP 8787 limitado a la subred privada. No lo expongas en el router ni a Internet.
+La dirección configurada 192.168.201.213 es privada y solo es accesible desde la red local que contiene el portátil servidor; no permite jugar desde Internet. En el portátil servidor, pulsa ACTIVAR CUENTAS LAN y comparte la huella SHA-256 por un canal independiente. Los jugadores introducen esa huella y usan REGISTRAR CUENTA; el servicio crea la cuenta en AzerothCore mediante WSL, solo desde la red local y con WoWServer/worldserver activos. Usa TCP 8787 limitado a la subred local en cualquier perfil de red. No lo expongas en el router ni a Internet.
 
 El launcher está implementado en C# WinForms; no requiere Go para ejecutarse. Para recompilarlo, ejecuta LaunchWoW\Compilar.ps1. Para compilar el paquete completo, ejecuta Compilar.ps1.
 Requiere .NET Framework 4.8, incluido en las versiones de Windows 10 indicadas arriba.
