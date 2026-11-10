@@ -325,12 +325,29 @@ namespace AzerothCoreLauncher
             autoPlay.ForeColor = foreground;
             autoPlay.BackColor = background;
             autoPlay.Location = new Point(28, 650);
-            autoPlay.Size = new Size(330, 27);
+            autoPlay.Size = new Size(260, 27);
             autoPlay.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             home.Controls.Add(autoPlay);
             autoPlay.CheckedChanged += delegate { autoPlayAfterInstall = autoPlay.Checked; };
 
-            Button install = MakeButton("INSTALAR CLIENTE", 570, 643, 190, 52, Color.FromArgb(27, 51, 69), Color.FromArgb(242, 211, 143));
+            Button options = MakeButton("CUENTA · AJUSTES", 300, 650, 160, 35, Color.FromArgb(20, 33, 47), foreground);
+            options.FlatAppearance.BorderSize = 1;
+            options.FlatAppearance.BorderColor = Color.FromArgb(88, 108, 124);
+            options.Anchor = AnchorStyles.Bottom;
+            AddButtonHover(options, Color.FromArgb(31, 51, 68), Color.FromArgb(128, 158, 178));
+            options.Click += delegate { settingsPage.Visible = true; settingsPage.BringToFront(); };
+            home.Controls.Add(options);
+
+            Button update = MakeButton("ACTUALIZAR", 472, 643, 150, 52, Color.FromArgb(29, 62, 76), Color.FromArgb(196, 224, 229));
+            update.FlatAppearance.BorderSize = 1;
+            update.FlatAppearance.BorderColor = Color.FromArgb(91, 153, 171);
+            update.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            AddButtonHover(update, Color.FromArgb(39, 85, 103), Color.FromArgb(125, 196, 215));
+            update.Click += delegate { UpdateClient(); };
+            home.Controls.Add(update);
+            actionButtons.Add(update);
+
+            Button install = MakeButton("INSTALAR", 634, 643, 150, 52, Color.FromArgb(27, 51, 69), Color.FromArgb(242, 211, 143));
             install.FlatAppearance.BorderSize = 1;
             install.FlatAppearance.BorderColor = accent;
             install.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
@@ -338,7 +355,8 @@ namespace AzerothCoreLauncher
             AddButtonHover(install, Color.FromArgb(39, 71, 93), Color.FromArgb(228, 187, 94));
             install.Click += delegate { SelectClient(); };
             home.Controls.Add(install);
-            Button play = MakeButton("JUGAR", 778, 638, 284, 61, Color.FromArgb(124, 37, 34), Color.FromArgb(255, 226, 150));
+            actionButtons.Add(install);
+            Button play = MakeButton("JUGAR", 796, 638, 266, 61, Color.FromArgb(124, 37, 34), Color.FromArgb(255, 226, 150));
             play.FlatAppearance.BorderSize = 2;
             play.FlatAppearance.BorderColor = Color.FromArgb(218, 169, 73);
             play.Font = new Font("Georgia", 17F, FontStyle.Bold);
@@ -346,13 +364,7 @@ namespace AzerothCoreLauncher
             AddButtonHover(play, Color.FromArgb(151, 52, 45), Color.FromArgb(255, 216, 134));
             play.Click += delegate { Play(); };
             home.Controls.Add(play);
-            Button options = MakeButton("CUENTA · AJUSTES", 368, 650, 183, 35, Color.FromArgb(20, 33, 47), foreground);
-            options.FlatAppearance.BorderSize = 1;
-            options.FlatAppearance.BorderColor = Color.FromArgb(88, 108, 124);
-            options.Anchor = AnchorStyles.Bottom;
-            AddButtonHover(options, Color.FromArgb(31, 51, 68), Color.FromArgb(128, 158, 178));
-            options.Click += delegate { settingsPage.Visible = true; settingsPage.BringToFront(); };
-            home.Controls.Add(options);
+            actionButtons.Add(play);
         }
 
         private void PaintBatzokiCrest(object sender, PaintEventArgs e)
@@ -728,6 +740,47 @@ namespace AzerothCoreLauncher
                         status.Text = "Cliente instalado. Pulsa JUGAR cuando quieras entrar.";
                 });
                 report(100, "Cliente listo. Iniciando el juego...");
+            });
+        }
+
+        private void UpdateClient()
+        {
+            string target = targetBox.Text.Trim();
+            if (!Directory.Exists(target))
+            {
+                using (FolderBrowserDialog dialog = new FolderBrowserDialog())
+                {
+                    dialog.Description = "Selecciona la carpeta existente de WoW 3.3.5a que quieres comparar y actualizar.";
+                    if (dialog.ShowDialog(this) != DialogResult.OK)
+                        return;
+                    target = dialog.SelectedPath;
+                }
+            }
+            string invalid = ClientValidation.GetInvalidClient(target);
+            if (invalid != null)
+            {
+                ShowWarning("La carpeta no contiene un cliente WoW 3.3.5a build 12340 válido: " + invalid + ".");
+                return;
+            }
+
+            targetBox.Text = target;
+            RunOperation("Comparando cliente", delegate(Action<string> log, Action<int, string> report)
+            {
+                log("Comparando tamaños y SHA-256 con el host privado " + ClientDownload.Server.Host + ".");
+                ClientDownload.Update(ClientDownload.Server, ClientDownload.CertificatePin, target,
+                    delegate(long done, long total, string path)
+                    {
+                        int percent = total <= 0 ? 100 : (int)Math.Min(99, done * 100 / total);
+                        report(percent, path + " · " + FormatBytes(done) + " / " + FormatBytes(total));
+                    });
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    existingClientDetected = true;
+                    homeStatus.Text = "Cliente actualizado · listo para entrar";
+                    homeStatus.ForeColor = Color.FromArgb(122, 224, 149);
+                    log("Actualización completa. Los archivos locales no incluidos en el manifiesto se han conservado.");
+                });
+                report(100, "Cliente actualizado.");
             });
         }
 

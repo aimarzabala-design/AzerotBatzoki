@@ -58,7 +58,9 @@ namespace AzerothCoreLauncher
             if (!ManifestTools.IsExcluded("WTF\\Config.wtf") ||
                 !ManifestTools.IsExcluded("Data\\enUS\\realmlist.wtf") ||
                 !ManifestTools.IsExcluded("Data\\esES\\realmlist.wtf") ||
-                !ManifestTools.IsExcluded("Interface\\AddOns\\Frostbound.lua") ||
+                ManifestTools.IsExcluded("Interface\\AddOns\\AzerotBatzokiTools\\AzerotBatzokiTools.toc") ||
+                !ManifestTools.IsExcluded("Interface\\FrameXML\\UIParent.lua") ||
+                !ManifestTools.IsExcluded("Interface\\AddOns\\Frostbound\\Frostbound.lua") ||
                 ManifestTools.IsExcluded("Data\\common.MPQ") ||
                 ManifestTools.IsSafeManifestPath("../outside") ||
                 ManifestTools.IsSafeManifestPath("C:/outside") ||
@@ -75,6 +77,7 @@ namespace AzerothCoreLauncher
                 ClientDownload.ManifestUri(ClientDownload.Server).AbsolutePath != "/client/manifest.json" ||
                 ClientDownload.FileUri(ClientDownload.Server, "Data/common.MPQ").AbsolutePath != "/client/files/Data/common.MPQ" ||
                 !TestPartialFileLength() ||
+                !TestUpdateComparison() ||
                 !TestRangeParsing() ||
                 !TestManifestSerialization() ||
                 !TestManifestBuild() ||
@@ -102,6 +105,38 @@ namespace AzerothCoreLauncher
                     return false;
                 File.WriteAllBytes(path, new byte[] { 1, 2, 3 });
                 return Convert.ToInt64(method.Invoke(null, new object[] { path })) == 3L;
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+        }
+
+        private static bool TestUpdateComparison()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "azerotbatzoki-update-test-" + Guid.NewGuid().ToString("N"));
+            byte[] content = Encoding.UTF8.GetBytes("same client file");
+            try
+            {
+                File.WriteAllBytes(path, content);
+                ManifestFile expected = new ManifestFile
+                {
+                    Path = "test.bin",
+                    Size = content.Length,
+                    Sha256 = ManifestTools.HashFile(path)
+                };
+                if (!ClientDownload.IsFileCurrent(path, expected))
+                    return false;
+                expected.Sha256 = new string('0', 64);
+                if (ClientDownload.IsFileCurrent(path, expected))
+                    return false;
+                expected.Sha256 = ManifestTools.HashFile(path);
+                expected.Size++;
+                if (ClientDownload.IsFileCurrent(path, expected))
+                    return false;
+                File.Delete(path);
+                return !ClientDownload.IsFileCurrent(path, expected);
             }
             finally
             {
@@ -149,16 +184,22 @@ namespace AzerothCoreLauncher
             {
                 Directory.CreateDirectory(Path.Combine(root, "Data", "enUS"));
                 Directory.CreateDirectory(Path.Combine(root, "Interface", "AddOns"));
+                Directory.CreateDirectory(Path.Combine(root, "Interface", "FrameXML"));
+                Directory.CreateDirectory(Path.Combine(root, "Interface", "AddOns", "Frostbound"));
                 Directory.CreateDirectory(Path.Combine(root, "WTF"));
                 File.WriteAllText(Path.Combine(root, "Wow.exe"), "wow");
                 File.WriteAllText(Path.Combine(root, "Data", "common.MPQ"), "data");
                 File.WriteAllText(Path.Combine(root, "Data", "enUS", "realmlist.wtf"), "set realmlist bad");
-                File.WriteAllText(Path.Combine(root, "Interface", "AddOns", "Frostbound.lua"), "private addon");
+                File.WriteAllText(Path.Combine(root, "Interface", "AddOns", "AzerotBatzokiTools.toc"), "## Interface: 30300");
+                File.WriteAllText(Path.Combine(root, "Interface", "AddOns", "Frostbound", "Frostbound.lua"), "excluded Frostbound addon");
+                File.WriteAllText(Path.Combine(root, "Interface", "FrameXML", "UIParent.lua"), "game UI source");
                 File.WriteAllText(Path.Combine(root, "WTF", "Config.wtf"), "user settings");
                 ClientManifest manifest = ManifestTools.Build(root, null);
-                return manifest.Files.Count == 2 &&
+                return manifest.Files.Count == 3 &&
                        manifest.Files.Any(item => item.Path == "Wow.exe") &&
                        manifest.Files.Any(item => item.Path == "Data/common.MPQ") &&
+                       manifest.Files.Any(item => item.Path == "Interface/AddOns/AzerotBatzokiTools.toc") &&
+                       manifest.Files.All(item => !item.Path.Contains("Frostbound") && !item.Path.Contains("FrameXML")) &&
                        manifest.Files.All(item => Regex.IsMatch(item.Sha256, "^[a-f0-9]{64}$"));
             }
             finally

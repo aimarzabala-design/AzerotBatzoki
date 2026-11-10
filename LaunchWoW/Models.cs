@@ -59,7 +59,7 @@ namespace AzerothCoreLauncher
     internal static class ManifestTools
     {
         private static readonly HashSet<string> ExcludedDirectories = new HashSet<string>(
-            new[] { "wtf", "cache", "logs", "screenshots", "errors", "error", "savedvariables", "interface" },
+            new[] { "wtf", "cache", "logs", "screenshots", "errors", "error", "savedvariables", "frostbound" },
             StringComparer.OrdinalIgnoreCase);
 
         private static readonly HashSet<string> ExcludedFiles = new HashSet<string>(
@@ -69,7 +69,11 @@ namespace AzerothCoreLauncher
         internal static bool IsExcluded(string relativePath)
         {
             string normalized = (relativePath ?? String.Empty).Replace('\\', '/');
-            foreach (string part in normalized.Split('/'))
+            string[] parts = normalized.Split('/');
+            if (parts[0].Equals("Interface", StringComparison.OrdinalIgnoreCase) &&
+                parts.Length > 1 && !parts[1].Equals("AddOns", StringComparison.OrdinalIgnoreCase))
+                return true;
+            foreach (string part in parts)
             {
                 if (ExcludedDirectories.Contains(part))
                     return true;
@@ -435,6 +439,158 @@ namespace AzerothCoreLauncher
             {
                 if (!installed && Directory.Exists(temporary))
                     Directory.Delete(temporary, true);
+            }
+        }
+
+        internal static void Update(Uri server, string pin, string destination,
+            Action<long, long, string> progress)
+        {
+            Uri baseUri = new Uri(server.AbsoluteUri.TrimEnd('/') + "/");
+            ClientManifest manifest;
+            HttpWebRequest manifestRequest = CreatePinnedRequest(ManifestUri(baseUri), pin);
+            manifestRequest.Timeout = 600000;
+            manifestRequest.ReadWriteTimeout = 600000;
+            using (HttpWebResponse response = (HttpWebResponse)manifestRequest.GetResponse())
+            using (Stream input = response.GetResponseStream())
+                manifest = JsonTools.Deserialize<ClientManifest>(input);
+            ManifestTools.Validate(manifest);
+
+            string root = Path.GetFullPath(destination).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!Directory.Exists(root.TrimEnd(Path.DirectorySeparatorChar)))
+                throw new DirectoryNotFoundException("No se encuentra la carpeta del cliente.");
+            if ((File.GetAttributes(root.TrimEnd(Path.DirectorySeparatorChar)) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidDataException("La carpeta del cliente es un enlace y no es segura.");
+            string invalid = ClientValidation.GetInvalidClient(root.TrimEnd(Path.DirectorySeparatorChar));
+            if (invalid != null)
+                throw new InvalidDataException("El cliente seleccionado no es compatible: " + invalid + ".");
+
+            long total = manifest.Files.Sum(item => item.Size);
+            long completed = 0;
+            foreach (ManifestFile item in manifest.Files)
+            {
+                string output = Path.GetFullPath(Path.Combine(root,
+                    item.Path.Replace('/', Path.DirectorySeparatorChar)));
+                if (!output.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("El manifiesto contiene una ruta fuera del cliente.");
+                EnsureSafeUpdatePath(root, output);
+                if (IsFileCurrent(output, item))
+                {
+                    completed += item.Size;
+                    if (progress != null)
+                        progress(completed, total, "Al día: " + item.Path);
+                    continue;
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(output));
+                string staging = output + ".azerotbatzoki-update-" + Guid.NewGuid().ToString("N");
+                DownloadUpdateFile(baseUri, pin, item, staging,
+                    delegate(long received, string path)
+                    {
+                        if (progress != null)
+                            progress(completed + received, total, "Actualizando " + path);
+                    });
+                EnsureSafeUpdatePath(root, output);
+                if (File.Exists(output))
+                    File.Replace(staging, output, null);
+                else
+                    File.Move(staging, output);
+                completed += item.Size;
+                if (progress != null)
+                    progress(completed, total, "Actualizado: " + item.Path);
+            }
+        }
+
+        internal static bool IsFileCurrent(string path, ManifestFile item)
+        {
+            if (!File.Exists(path))
+                return false;
+            FileInfo info = new FileInfo(path);
+            return info.Length == item.Size &&
+                String.Equals(ManifestTools.HashFile(path), item.Sha256, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void DownloadUpdateFile(Uri baseUri, string pin, ManifestFile item, string output,
+            Action<long, string> progress)
+        {
+            if (File.Exists(output) && IsFileCurrent(output, item))
+                return;
+            if (File.Exists(output))
+                File.Delete(output);
+            string partial = output + ".part";
+            if (GetPartialFileLength(partial) > item.Size)
+                File.Delete(partial);
+            if (item.Size == 0 && !File.Exists(partial))
+                File.WriteAllBytes(partial, new byte[0]);
+
+            long received = GetPartialFileLength(partial);
+            if (received > 0 && progress != null)
+                progress(received, item.Path);
+            int retries = 0;
+            byte[] buffer = new byte[1024 * 1024];
+            while (GetPartialFileLength(partial) < item.Size)
+            {
+                long offset = GetPartialFileLength(partial);
+                HttpWebRequest request = CreatePinnedRequest(FileUri(baseUri, item.Path), pin);
+                request.Timeout = 300000;
+                request.ReadWriteTimeout = 300000;
+                if (offset > 0)
+                    request.AddRange(offset);
+                try
+                {
+                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                    {
+                        if ((offset > 0 && response.StatusCode != HttpStatusCode.PartialContent) ||
+                            (offset == 0 && response.StatusCode != HttpStatusCode.OK))
+                            throw new InvalidDataException("El host respondió con un rango inesperado para " + item.Path + ".");
+                        using (Stream input = response.GetResponseStream())
+                        using (FileStream file = new FileStream(partial,
+                            offset == 0 ? FileMode.Create : FileMode.Append, FileAccess.Write, FileShare.None))
+                        {
+                            int read;
+                            while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                            {
+                                file.Write(buffer, 0, read);
+                                received += read;
+                                if (progress != null)
+                                    progress(received, item.Path);
+                            }
+                        }
+                    }
+                    if (GetPartialFileLength(partial) < item.Size && ++retries > 3)
+                        throw new EndOfStreamException("La conexión se interrumpió varias veces al descargar " + item.Path + ".");
+                }
+                catch (WebException)
+                {
+                    if (++retries > 3)
+                        throw;
+                    Thread.Sleep(1000 * retries);
+                }
+                catch (IOException)
+                {
+                    if (++retries > 3)
+                        throw;
+                    Thread.Sleep(1000 * retries);
+                }
+            }
+
+            File.Move(partial, output);
+            if (!IsFileCurrent(output, item))
+            {
+                File.Delete(output);
+                throw new InvalidDataException("La verificación SHA-256 falló para " + item.Path + ".");
+            }
+        }
+
+        private static void EnsureSafeUpdatePath(string root, string output)
+        {
+            string relative = output.Substring(root.Length);
+            string current = root.TrimEnd(Path.DirectorySeparatorChar);
+            foreach (string part in relative.Split(Path.DirectorySeparatorChar))
+            {
+                current = Path.Combine(current, part);
+                if ((File.Exists(current) || Directory.Exists(current)) &&
+                    (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidDataException("No se actualiza a través de enlaces del sistema: " + current);
             }
         }
 

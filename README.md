@@ -17,10 +17,16 @@ See [LEEME.md](./LEEME.md) for detailed installation and troubleshooting instruc
 - The game realm is `192.168.201.213` (authentication port `3724`, world port `8085`). The separate client-download host is `192.168.201.209:8788`; both addresses require LAN access.
 - Keep the download host running while players install. The launcher serves only manifest-listed client files over HTTPS, restricts requests to private-network addresses, pins the host certificate, verifies SHA-256 for every file, and retries/resumes a transfer up to three times while the installer remains open. It reads `Documents\AzerotBatzoki-ClientDistribution`; client files and the private certificate are not in Git. If the certificate is rotated, rebuild and redistribute the launcher with the new public fingerprint; never distribute the PFX.
 - On the download host, set the trusted Wi-Fi network profile to Private, then run PowerShell as administrator and execute `LaunchWoW\Enable-DownloadHostFirewall.ps1` once. It allows inbound TCP `8788` only for `LocalSubnet` on the Private profile. Port `8787` is left as-is for the existing account service; this launcher change does not alter the remote server or its ports.
-- The launcher checks WoW 3.3.5a build 12340, `Wow.exe`, `Data\common.MPQ`, and one locale (`Data\enUS`, `Data\enGB`, or `Data\esES`). `Data\interface.MPQ` is not required. It omits `Interface`, `WTF`, caches, logs, screenshots, errors, realmlist files, and Frostbound launcher files from the download manifest.
+- The launcher checks WoW 3.3.5a build 12340, `Wow.exe`, `Data\common.MPQ`, and one locale (`Data\enUS`, `Data\enGB`, or `Data\esES`). `Data\interface.MPQ` is not required. It includes `Interface\AddOns` and omits the rest of `Interface`, `WTF`, caches, logs, screenshots, errors, realmlist files, and Frostbound files/folders from the download manifest.
 - The server must be installed and running before players can log in. The launcher and installer do not themselves host a public game service.
 
 The `.gitignore` excludes common client assets and local credentials as a safeguard. Do not remove these exclusions to commit client archives or secrets.
+
+## Client and addon updates
+
+Place shared addons under `Documents\AzerotBatzoki-ClientDistribution\Interface\AddOns\AddonName` on the download-host PC. Complete the copy before players start an update. The host watches the distribution folder and rebuilds its cached manifest on the next request after changes; calculating hashes may take time. Restart the host once after upgrading its executable to enable this behavior.
+
+On player PCs, close WoW, select the existing client through **INSTALAR** or **CUENTA · AJUSTES**, then press **ACTUALIZAR**. The launcher compares file sizes and SHA-256 hashes with the host, downloads missing or changed files, verifies them, and replaces each file after verification. It preserves files absent from the manifest, including local addons and settings; an addon with the same path as a shared addon will be updated to the host's version. It does not remove addons deleted from the distribution.
 
 ## Build and test on Windows
 

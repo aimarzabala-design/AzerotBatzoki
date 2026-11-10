@@ -31,6 +31,7 @@ namespace AzerothCoreLauncher
         private static readonly object ClientManifestLock = new object();
         private static ClientManifest HostedClientManifest;
         private static string HostedClientRoot;
+        private static FileSystemWatcher HostedClientWatcher;
 
         internal static int Run()
         {
@@ -48,6 +49,8 @@ namespace AzerothCoreLauncher
             {
                 HostedClientRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                     "AzerotBatzoki-ClientDistribution");
+                if (clientFilesOnly)
+                    WatchHostedClientFiles();
                 X509Certificate2 certificate = LoadOrCreateCertificate();
                 TcpListener listener = new TcpListener(IPAddress.Any, port);
                 try
@@ -276,14 +279,36 @@ namespace AzerothCoreLauncher
 
         private static ClientManifest GetHostedClientManifest()
         {
-            if (HostedClientManifest != null)
-                return HostedClientManifest;
             lock (ClientManifestLock)
             {
                 if (HostedClientManifest == null)
                     HostedClientManifest = ManifestTools.Build(HostedClientRoot, null);
                 return HostedClientManifest;
             }
+        }
+
+        private static void WatchHostedClientFiles()
+        {
+            if (!Directory.Exists(HostedClientRoot))
+                throw new DirectoryNotFoundException("No se encuentra la carpeta de distribución: " + HostedClientRoot);
+            HostedClientWatcher = new FileSystemWatcher(HostedClientRoot);
+            HostedClientWatcher.IncludeSubdirectories = true;
+            HostedClientWatcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName |
+                NotifyFilters.LastWrite | NotifyFilters.Size;
+            HostedClientWatcher.InternalBufferSize = 32768;
+            FileSystemEventHandler changed = delegate { InvalidateHostedClientManifest(); };
+            HostedClientWatcher.Changed += changed;
+            HostedClientWatcher.Created += changed;
+            HostedClientWatcher.Deleted += changed;
+            HostedClientWatcher.Renamed += delegate { InvalidateHostedClientManifest(); };
+            HostedClientWatcher.Error += delegate { InvalidateHostedClientManifest(); };
+            HostedClientWatcher.EnableRaisingEvents = true;
+        }
+
+        private static void InvalidateHostedClientManifest()
+        {
+            lock (ClientManifestLock)
+                HostedClientManifest = null;
         }
 
         private static void SendClientFile(Stream stream, ClientManifest manifest, string relative,

@@ -46,6 +46,12 @@ La dirección configurada `192.168.201.213` es privada y solo es accesible desde
 El launcher está implementado en C# WinForms y no requiere Go para ejecutarse. Para recompilarlo, ejecuta `LaunchWoW\Compilar.ps1`; para compilar el paquete completo, ejecuta `Compilar.ps1`.
 Requiere .NET Framework 4.8, incluido en las versiones de Windows 10 indicadas arriba.
 
+## Actualizar cliente y addons
+
+En el PC de descargas, copia los addons compartidos a `Documents\AzerotBatzoki-ClientDistribution\Interface\AddOns\NombreDelAddon`. Termina de copiarlos antes de que los jugadores actualicen. El host detecta los cambios y recalcula el manifiesto en la siguiente petición; el cálculo de hashes puede tardar. Tras sustituir el ejecutable del host por esta versión, reinícialo una vez.
+
+En cada PC, cierra WoW, selecciona el cliente existente y pulsa **ACTUALIZAR**. Se comparan tamaños y SHA-256 y se descargan únicamente los archivos ausentes o distintos. Cada archivo se verifica antes de reemplazarlo. Se conservan los ajustes y archivos locales que no aparecen en el manifiesto. Los addons compartidos con la misma ruta se actualizan a la versión del host; los addons retirados del host no se borran automáticamente del PC del jugador.
+
 ## Estado de la revisión
 
 Se corrigieron permisos, tratamiento de credenciales, códigos de error, backups incompletos, entorno de PowerShell y arranque/red. El launcher comprueba la presencia de `Wow.exe` y un idioma compatible, no la de `Data\interface.MPQ`. Se reconstruyó el EXE y pasaron las pruebas aisladas. No se ha ejecutado una instalación completa en Windows 10 Pro ni se ha verificado el inicio de sesión desde otro PC de la LAN; no se garantiza todavía el funcionamiento de extremo a extremo. Lee INFORME_REVISION.md para ver evidencia y pruebas pendientes.
