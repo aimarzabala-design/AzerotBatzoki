@@ -366,9 +366,9 @@ namespace AzerothCoreLauncher
                     if (item.Size == 0)
                         File.WriteAllBytes(partialFile, new byte[0]);
                     int retries = 0;
-                    while (new FileInfo(partialFile).Length < item.Size)
+                    while (GetPartialFileLength(partialFile) < item.Size)
                     {
-                        long offset = new FileInfo(partialFile).Length;
+                        long offset = GetPartialFileLength(partialFile);
                         HttpWebRequest request = CreatePinnedRequest(fileUri, pin);
                         request.Timeout = 300000;
                         request.ReadWriteTimeout = 300000;
@@ -457,6 +457,11 @@ namespace AzerothCoreLauncher
                         pin, StringComparison.OrdinalIgnoreCase);
             };
             return request;
+        }
+
+        private static long GetPartialFileLength(string path)
+        {
+            return File.Exists(path) ? new FileInfo(path).Length : 0L;
         }
     }
 

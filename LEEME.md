@@ -39,7 +39,7 @@ Registros: C:\WoWServer\logs\instalacion.log, logs\inicio-automatico.log y netwo
 
 ## Launcher de escritorio
 
-Ejecuta `LaunchWoW\AzerotBatzoki.exe`. Para compilarlo, usa `LaunchWoW\Compilar.ps1`. El cliente debe ser WoW 3.3.5a build 12340 con `Wow.exe`, `Data\common.MPQ` y un locale `enUS`, `enGB` o `esES`. El botón de instalación descarga desde `192.168.201.209:8788`, comprueba SHA-256, configura el reino `192.168.201.213` y arranca el juego. No requiere `Data\interface.MPQ`.
+Ejecuta `LaunchWoW\AzerotBatzoki.exe`. La ventana se puede redimensionar y maximizar. Para compilarlo, usa `LaunchWoW\Compilar.ps1`. El cliente debe ser WoW 3.3.5a build 12340 con `Wow.exe`, `Data\common.MPQ` y un locale `enUS`, `enGB` o `esES`. El botón de instalación descarga desde `192.168.201.209:8788`, comprueba SHA-256, configura el reino `192.168.201.213` y arranca el juego. No requiere `Data\interface.MPQ`.
 
 La dirección configurada `192.168.201.213` es privada y solo es accesible desde la red local que contiene el portátil servidor; no permite jugar desde Internet. El equipo de distribución `192.168.201.209` debe tener el cliente fuente en `Documents\AzerotBatzoki-ClientDistribution`. Ejecuta `LaunchWoW\Enable-DownloadHostFirewall.ps1` una vez desde PowerShell como administrador y pulsa `ACTIVAR LAN` para servirlo por TCP 8788 a LocalSubnet; el cliente y el certificado privado quedan fuera de Git. El reino sigue en `192.168.201.213` (auth 3724, world 8085). El puerto 8787 del servicio de cuentas queda sin cambios. No publiques ni abras el host de descarga a Internet.
 

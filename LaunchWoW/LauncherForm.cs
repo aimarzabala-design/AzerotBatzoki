@@ -47,13 +47,12 @@ namespace AzerothCoreLauncher
             Text = "AzerotBatzoki | Azeroth";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1100, 730);
-            MinimumSize = new Size(1100, 730);
-            MaximumSize = new Size(1100, 730);
+            MinimumSize = new Size(1100, 680);
             BackColor = background;
             ForeColor = foreground;
             Font = new Font("Segoe UI", 9F, FontStyle.Regular);
-            FormBorderStyle = FormBorderStyle.FixedSingle;
-            MaximizeBox = false;
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MaximizeBox = true;
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
             Panel header = new Panel();
@@ -201,6 +200,7 @@ namespace AzerothCoreLauncher
             settingsPage.Size = new Size(880, 735);
             settingsPage.Location = new Point(110, 0);
             settingsPage.BackColor = background;
+            settingsPage.AutoScroll = true;
             Control[] existing = Controls.Cast<Control>().ToArray();
             foreach (Control control in existing)
             {
@@ -209,6 +209,11 @@ namespace AzerothCoreLauncher
             }
             Controls.Add(settingsPage);
             settingsPage.Visible = false;
+            Resize += delegate
+            {
+                settingsPage.Size = new Size(Math.Min(880, ClientSize.Width), ClientSize.Height);
+                settingsPage.Location = new Point(Math.Max(0, (ClientSize.Width - settingsPage.Width) / 2), 0);
+            };
 
             Button back = MakeButton("VOLVER", 790, 7, 72, 25, Color.FromArgb(25, 38, 53), foreground);
             back.Click += delegate { settingsPage.Visible = false; };
@@ -227,6 +232,7 @@ namespace AzerothCoreLauncher
             brand.Size = new Size(235, 100);
             brand.BackColor = Color.Transparent;
             brand.Paint += PaintBatzokiCrest;
+            brand.Anchor = AnchorStyles.Top | AnchorStyles.Left;
             home.Controls.Add(brand);
 
             Label banner = new Label();
@@ -237,11 +243,13 @@ namespace AzerothCoreLauncher
             banner.TextAlign = ContentAlignment.MiddleRight;
             banner.Location = new Point(783, 32);
             banner.Size = new Size(280, 28);
+            banner.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             home.Controls.Add(banner);
 
             Panel news = new Panel();
             news.Location = new Point(24, 111);
             news.Size = new Size(260, 463);
+            news.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
             news.BackColor = Color.FromArgb(12, 21, 34);
             news.Paint += delegate(object sender, PaintEventArgs e)
             {
@@ -279,6 +287,7 @@ namespace AzerothCoreLauncher
             Panel hero = new Panel();
             hero.Location = new Point(298, 111);
             hero.Size = new Size(765, 463);
+            hero.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             hero.BackColor = Color.FromArgb(10, 20, 35);
             hero.Paint += PaintBatzokiScene;
             home.Controls.Add(hero);
@@ -290,6 +299,7 @@ namespace AzerothCoreLauncher
             sceneCaption.TextAlign = ContentAlignment.MiddleLeft;
             sceneCaption.Location = new Point(316, 534);
             sceneCaption.Size = new Size(400, 27);
+            sceneCaption.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             home.Controls.Add(sceneCaption);
 
             homeStatus = new Label();
@@ -298,11 +308,13 @@ namespace AzerothCoreLauncher
             homeStatus.ForeColor = existingClientDetected ? Color.FromArgb(122, 224, 149) : Color.FromArgb(237, 190, 105);
             homeStatus.Location = new Point(302, 589);
             homeStatus.Size = new Size(550, 22);
+            homeStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             home.Controls.Add(homeStatus);
 
             homeProgress = new Panel();
             homeProgress.Location = new Point(302, 614);
             homeProgress.Size = new Size(760, 14);
+            homeProgress.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             homeProgress.BackColor = Color.FromArgb(5, 9, 15);
             homeProgress.Paint += PaintHomeProgress;
             home.Controls.Add(homeProgress);
@@ -314,6 +326,7 @@ namespace AzerothCoreLauncher
             autoPlay.BackColor = background;
             autoPlay.Location = new Point(28, 650);
             autoPlay.Size = new Size(330, 27);
+            autoPlay.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             home.Controls.Add(autoPlay);
             autoPlay.CheckedChanged += delegate { autoPlayAfterInstall = autoPlay.Checked; };
 
@@ -321,6 +334,7 @@ namespace AzerothCoreLauncher
             install.FlatAppearance.BorderSize = 1;
             install.FlatAppearance.BorderColor = accent;
             install.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            install.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             AddButtonHover(install, Color.FromArgb(39, 71, 93), Color.FromArgb(228, 187, 94));
             install.Click += delegate { SelectClient(); };
             home.Controls.Add(install);
@@ -328,12 +342,14 @@ namespace AzerothCoreLauncher
             play.FlatAppearance.BorderSize = 2;
             play.FlatAppearance.BorderColor = Color.FromArgb(218, 169, 73);
             play.Font = new Font("Georgia", 17F, FontStyle.Bold);
+            play.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             AddButtonHover(play, Color.FromArgb(151, 52, 45), Color.FromArgb(255, 216, 134));
             play.Click += delegate { Play(); };
             home.Controls.Add(play);
             Button options = MakeButton("CUENTA · AJUSTES", 368, 650, 183, 35, Color.FromArgb(20, 33, 47), foreground);
             options.FlatAppearance.BorderSize = 1;
             options.FlatAppearance.BorderColor = Color.FromArgb(88, 108, 124);
+            options.Anchor = AnchorStyles.Bottom;
             AddButtonHover(options, Color.FromArgb(31, 51, 68), Color.FromArgb(128, 158, 178));
             options.Click += delegate { settingsPage.Visible = true; settingsPage.BringToFront(); };
             home.Controls.Add(options);
@@ -378,23 +394,25 @@ namespace AzerothCoreLauncher
         private void PaintBatzokiHome(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
+            int width = ((Control)sender).ClientSize.Width;
+            int height = ((Control)sender).ClientSize.Height;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             using (System.Drawing.Drawing2D.LinearGradientBrush b = new System.Drawing.Drawing2D.LinearGradientBrush(
-                new Rectangle(0, 0, 1100, 730), Color.FromArgb(9, 17, 29), Color.FromArgb(24, 34, 44), 90F))
-                g.FillRectangle(b, 0, 0, 1100, 730);
+                new Rectangle(0, 0, width, height), Color.FromArgb(9, 17, 29), Color.FromArgb(24, 34, 44), 90F))
+                g.FillRectangle(b, 0, 0, width, height);
             using (Pen p = new Pen(Color.FromArgb(174, 130, 56), 1))
-                g.DrawRectangle(p, 9, 9, 1081, 711);
+                g.DrawRectangle(p, 9, 9, width - 19, height - 19);
             using (Pen p = new Pen(Color.FromArgb(54, 75, 91), 1))
-                g.DrawRectangle(p, 14, 14, 1071, 701);
+                g.DrawRectangle(p, 14, 14, width - 29, height - 29);
             using (Pen p = new Pen(Color.FromArgb(129, 99, 49), 1))
             {
-                g.DrawLine(p, 25, 104, 1074, 104);
-                g.DrawLine(p, 25, 108, 1074, 108);
+                g.DrawLine(p, 25, 104, width - 26, 104);
+                g.DrawLine(p, 25, 108, width - 26, 108);
             }
             using (SolidBrush b = new SolidBrush(Color.FromArgb(183, 39, 38)))
-                g.FillRectangle(b, 1061, 23, 6, 26);
+                g.FillRectangle(b, width - 39, 23, 6, 26);
             using (SolidBrush b = new SolidBrush(Color.FromArgb(42, 117, 71)))
-                g.FillRectangle(b, 1068, 23, 6, 26);
+                g.FillRectangle(b, width - 32, 23, 6, 26);
         }
 
         private void PaintBatzokiScene(object sender, PaintEventArgs e)

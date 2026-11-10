@@ -74,6 +74,7 @@ namespace AzerothCoreLauncher
                 ClientDownload.Server.AbsoluteUri != "https://192.168.201.209:8788/client/" ||
                 ClientDownload.ManifestUri(ClientDownload.Server).AbsolutePath != "/client/manifest.json" ||
                 ClientDownload.FileUri(ClientDownload.Server, "Data/common.MPQ").AbsolutePath != "/client/files/Data/common.MPQ" ||
+                !TestPartialFileLength() ||
                 !TestRangeParsing() ||
                 !TestManifestSerialization() ||
                 !TestManifestBuild() ||
@@ -86,6 +87,27 @@ namespace AzerothCoreLauncher
 
             Console.WriteLine("SELF_TEST_OK");
             return 0;
+        }
+
+        private static bool TestPartialFileLength()
+        {
+            MethodInfo method = typeof(ClientDownload).GetMethod("GetPartialFileLength",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            if (method == null)
+                return false;
+            string path = Path.Combine(Path.GetTempPath(), "azerotbatzoki-test-" + Guid.NewGuid().ToString("N") + ".part");
+            try
+            {
+                if (Convert.ToInt64(method.Invoke(null, new object[] { path })) != 0L)
+                    return false;
+                File.WriteAllBytes(path, new byte[] { 1, 2, 3 });
+                return Convert.ToInt64(method.Invoke(null, new object[] { path })) == 3L;
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
         }
 
         private static bool TestRangeParsing()
