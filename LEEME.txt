@@ -1,4 +1,4 @@
-﻿# AzerothCore para Windows 10 Pro — edición revisada
+# AzerothCore para Windows 10 Pro — edición revisada
 
 Destino: Windows 10 Pro x64 (build 19041 o posterior) con PowerShell 5.1.
 El EXE contiene el instalador completo. Los demás archivos permiten revisarlo y recompilarlo; no necesitas instalar Go para usar el EXE.
@@ -39,9 +39,9 @@ Registros: C:\WoWServer\logs\instalacion.log, logs\inicio-automatico.log y netwo
 
 ## Launcher de escritorio
 
-Abre Iniciar_Client_WoW.bat, Iniciar_Client_GUI.ps1 o LaunchWoW\LaunchWoW.exe. La app no incluye el cliente. Selecciona con ELEGIR CLIENTE una instalación compatible WoW 3.3.5a build 12340 o instala desde un ZIP completo que ya tengas. El cliente debe incluir Wow.exe, Data\common.MPQ y una carpeta de idioma (Data\enUS, Data\enGB o Data\esES). JUGAR configura realmlist.wtf con 192.168.201.213 y ejecuta Wow.exe. El launcher no exige Data\interface.MPQ.
+Abre Iniciar_Client_WoW.bat, Iniciar_Client_GUI.ps1 o LaunchWoW\AzerotBatzoki.exe. El cliente se descarga de 192.168.201.209:8788, se verifica y se instala desde el launcher. El cliente debe incluir Wow.exe, Data\common.MPQ y una carpeta de idioma (Data\enUS, Data\enGB o Data\esES). JUGAR configura realmlist.wtf con 192.168.201.213 y ejecuta Wow.exe. El launcher no exige Data\interface.MPQ.
 
-La dirección configurada 192.168.201.213 es privada y solo es accesible desde la red local que contiene el portátil servidor; no permite jugar desde Internet. En el portátil servidor, pulsa ACTIVAR CUENTAS LAN y comparte la huella SHA-256 por un canal independiente. Los jugadores introducen esa huella y usan REGISTRAR CUENTA; el servicio crea la cuenta en AzerothCore mediante WSL, solo desde la red local y con WoWServer/worldserver activos. Usa TCP 8787 limitado a la subred local en cualquier perfil de red. No lo expongas en el router ni a Internet.
+La dirección del reino 192.168.201.213 solo es accesible desde su red local. El host de descarga 192.168.201.209 sirve el cliente verificado por TCP 8788; coloca el cliente fuente en Documents\AzerotBatzoki-ClientDistribution, ejecuta LaunchWoW\Enable-DownloadHostFirewall.ps1 como administrador una vez y pulsa ACTIVAR LAN. El realm usa auth 3724 y world 8085. El servicio de cuentas existente en 8787 no cambia. No expongas estos servicios a Internet.
 
 El launcher está implementado en C# WinForms; no requiere Go para ejecutarse. Para recompilarlo, ejecuta LaunchWoW\Compilar.ps1. Para compilar el paquete completo, ejecuta Compilar.ps1.
 Requiere .NET Framework 4.8, incluido en las versiones de Windows 10 indicadas arriba.

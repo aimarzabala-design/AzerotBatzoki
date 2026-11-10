@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set "LAUNCHER=%~dp0LaunchWoW\LaunchWoW.exe"
+set "LAUNCHER=%~dp0LaunchWoW\AzerotBatzoki.exe"
 if not exist "%LAUNCHER%" (
   echo ERROR: No se encontro el launcher de escritorio:
   echo "%LAUNCHER%"

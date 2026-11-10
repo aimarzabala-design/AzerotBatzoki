@@ -10,9 +10,9 @@ using System.Text.RegularExpressions;
 using System.Net;
 using System.Runtime.Versioning;
 
-[assembly: AssemblyTitle("AzerothCore Launcher")]
-[assembly: AssemblyProduct("AzerothCore Launcher")]
-[assembly: AssemblyDescription("Lanzador de escritorio para cliente AzerothCore")]
+[assembly: AssemblyTitle("AzerotBatzoki")]
+[assembly: AssemblyProduct("AzerotBatzoki")]
+[assembly: AssemblyDescription("Launcher privado de AzerotBatzoki para World of Warcraft 3.3.5a")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: TargetFramework(".NETFramework,Version=v4.8")]
 
@@ -26,6 +26,8 @@ namespace AzerothCoreLauncher
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             if (args.Length > 0 && String.Equals(args[0], "--serve", StringComparison.Ordinal))
                 return LauncherServer.Run();
+            if (args.Length > 0 && String.Equals(args[0], "--serve-client", StringComparison.Ordinal))
+                return LauncherServer.RunClientFiles();
             if (args.Length > 0 && String.Equals(args[0], "--self-test", StringComparison.Ordinal))
                 return LauncherTests.Run();
             if (args.Length > 0 && String.Equals(args[0], "--fingerprint", StringComparison.Ordinal))
@@ -37,7 +39,7 @@ namespace AzerothCoreLauncher
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine(ex.Message);
+                    Console.Error.WriteLine(ex.ToString());
                     return 1;
                 }
             }
@@ -56,6 +58,7 @@ namespace AzerothCoreLauncher
             if (!ManifestTools.IsExcluded("WTF\\Config.wtf") ||
                 !ManifestTools.IsExcluded("Data\\enUS\\realmlist.wtf") ||
                 !ManifestTools.IsExcluded("Data\\esES\\realmlist.wtf") ||
+                !ManifestTools.IsExcluded("Interface\\AddOns\\Frostbound.lua") ||
                 ManifestTools.IsExcluded("Data\\common.MPQ") ||
                 ManifestTools.IsSafeManifestPath("../outside") ||
                 ManifestTools.IsSafeManifestPath("C:/outside") ||
@@ -68,6 +71,10 @@ namespace AzerothCoreLauncher
                 LauncherForm.BuildRegistrationUri(new Uri("https://192.168.201.213:8787/")).AbsolutePath != "/api/register" ||
                 LauncherForm.DefaultServerAddress != "https://192.168.201.213:8787" ||
                 LauncherForm.DefaultRealmAddress != "192.168.201.213" ||
+                ClientDownload.Server.AbsoluteUri != "https://192.168.201.209:8788/client/" ||
+                ClientDownload.ManifestUri(ClientDownload.Server).AbsolutePath != "/client/manifest.json" ||
+                ClientDownload.FileUri(ClientDownload.Server, "Data/common.MPQ").AbsolutePath != "/client/files/Data/common.MPQ" ||
+                !TestRangeParsing() ||
                 !TestManifestSerialization() ||
                 !TestManifestBuild() ||
                 !TestClientValidation() ||
@@ -79,6 +86,16 @@ namespace AzerothCoreLauncher
 
             Console.WriteLine("SELF_TEST_OK");
             return 0;
+        }
+
+        private static bool TestRangeParsing()
+        {
+            long offset;
+            return LauncherServer.TryParseStartRange("bytes=0-", 10, out offset) && offset == 0 &&
+                   LauncherServer.TryParseStartRange("bytes=9-", 10, out offset) && offset == 9 &&
+                   !LauncherServer.TryParseStartRange("bytes=10-", 10, out offset) &&
+                   !LauncherServer.TryParseStartRange("bytes=1-2", 10, out offset) &&
+                   !LauncherServer.TryParseStartRange("bytes=-1", 10, out offset);
         }
 
         private static bool TestManifestSerialization()
@@ -109,10 +126,12 @@ namespace AzerothCoreLauncher
             try
             {
                 Directory.CreateDirectory(Path.Combine(root, "Data", "enUS"));
+                Directory.CreateDirectory(Path.Combine(root, "Interface", "AddOns"));
                 Directory.CreateDirectory(Path.Combine(root, "WTF"));
                 File.WriteAllText(Path.Combine(root, "Wow.exe"), "wow");
                 File.WriteAllText(Path.Combine(root, "Data", "common.MPQ"), "data");
                 File.WriteAllText(Path.Combine(root, "Data", "enUS", "realmlist.wtf"), "set realmlist bad");
+                File.WriteAllText(Path.Combine(root, "Interface", "AddOns", "Frostbound.lua"), "private addon");
                 File.WriteAllText(Path.Combine(root, "WTF", "Config.wtf"), "user settings");
                 ClientManifest manifest = ManifestTools.Build(root, null);
                 return manifest.Files.Count == 2 &&
@@ -158,9 +177,9 @@ namespace AzerothCoreLauncher
 
         private static bool TestClientPackage()
         {
-            string root = Path.Combine(Path.GetTempPath(), "AzerothCoreClientPackage-" + Guid.NewGuid().ToString("N"));
+            string root = Path.Combine(Path.GetTempPath(), "AB" + Guid.NewGuid().ToString("N"));
             string zip = root + ".zip";
-            string target = Path.Combine(root, "installed");
+            string target = Path.Combine(root, "i");
             try
             {
                 using (FileStream file = new FileStream(zip, FileMode.CreateNew))

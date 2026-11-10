@@ -4,10 +4,12 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace AzerothCoreLauncher
 {
@@ -57,11 +59,11 @@ namespace AzerothCoreLauncher
     internal static class ManifestTools
     {
         private static readonly HashSet<string> ExcludedDirectories = new HashSet<string>(
-            new[] { "wtf", "cache", "logs", "screenshots", "errors", "error", "savedvariables" },
+            new[] { "wtf", "cache", "logs", "screenshots", "errors", "error", "savedvariables", "interface" },
             StringComparer.OrdinalIgnoreCase);
 
         private static readonly HashSet<string> ExcludedFiles = new HashSet<string>(
-            new[] { "realmlist.wtf", "config-cache.wtf", "bindings-cache.wtf", "macros-cache.txt", "desktop.ini", "thumbs.db" },
+            new[] { "realmlist.wtf", "config-cache.wtf", "bindings-cache.wtf", "macros-cache.txt", "desktop.ini", "thumbs.db", "frostbound launcher.exe", "set_language_enus.bat" },
             StringComparer.OrdinalIgnoreCase);
 
         internal static bool IsExcluded(string relativePath)
@@ -306,6 +308,155 @@ namespace AzerothCoreLauncher
                 if (!installed && Directory.Exists(temporary))
                     Directory.Delete(temporary, true);
             }
+        }
+    }
+
+    internal static class ClientDownload
+    {
+        internal static readonly Uri Server = new Uri("https://192.168.201.209:8788/client/");
+        internal const string CertificatePin = "2801924a71f3ade247e5d57d9e133e49582dc01199599826c7e115ade4cc025d";
+
+        internal static Uri ManifestUri(Uri server)
+        {
+            return new Uri(server, "manifest.json");
+        }
+
+        internal static Uri FileUri(Uri server, string relativePath)
+        {
+            string escaped = String.Join("/", relativePath.Split('/').Select(Uri.EscapeDataString).ToArray());
+            return new Uri(server, "files/" + escaped);
+        }
+
+        internal static void Install(Uri server, string pin, string destination, string realm,
+            Action<long, long, string> progress)
+        {
+            Uri baseUri = new Uri(server.AbsoluteUri.TrimEnd('/') + "/");
+            HttpWebRequest manifestRequest = CreatePinnedRequest(ManifestUri(baseUri), pin);
+            manifestRequest.Timeout = 600000;
+            manifestRequest.ReadWriteTimeout = 600000;
+            ClientManifest manifest;
+            using (HttpWebResponse response = (HttpWebResponse)manifestRequest.GetResponse())
+            using (Stream input = response.GetResponseStream())
+                manifest = JsonTools.Deserialize<ClientManifest>(input);
+            ManifestTools.Validate(manifest);
+
+            string target = Path.GetFullPath(destination);
+            if (Directory.Exists(target) || File.Exists(target))
+                throw new IOException("La carpeta de destino ya existe. Elige una carpeta nueva para no sobrescribir archivos.");
+            string parent = Path.GetDirectoryName(target);
+            Directory.CreateDirectory(parent);
+            string temporary = Path.Combine(parent, ".azerotbatzoki-client-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temporary);
+            bool installed = false;
+            try
+            {
+                long total = manifest.Files.Sum(item => item.Size);
+                long completed = 0;
+                byte[] buffer = new byte[1024 * 1024];
+                foreach (ManifestFile item in manifest.Files)
+                {
+                    Uri fileUri = FileUri(baseUri, item.Path);
+                    string output = Path.GetFullPath(Path.Combine(temporary,
+                        item.Path.Replace('/', Path.DirectorySeparatorChar)));
+                    if (!output.StartsWith(temporary.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
+                        StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("El manifiesto contiene una ruta fuera de la carpeta de destino.");
+                    Directory.CreateDirectory(Path.GetDirectoryName(output));
+                    string partialFile = output + ".part";
+                    if (item.Size == 0)
+                        File.WriteAllBytes(partialFile, new byte[0]);
+                    int retries = 0;
+                    while (new FileInfo(partialFile).Length < item.Size)
+                    {
+                        long offset = new FileInfo(partialFile).Length;
+                        HttpWebRequest request = CreatePinnedRequest(fileUri, pin);
+                        request.Timeout = 300000;
+                        request.ReadWriteTimeout = 300000;
+                        if (offset > 0)
+                            request.AddRange(offset);
+                        try
+                        {
+                            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                            {
+                                if ((offset > 0 && response.StatusCode != HttpStatusCode.PartialContent) ||
+                                    (offset == 0 && response.StatusCode != HttpStatusCode.OK))
+                                    throw new InvalidDataException("El host respondió con un rango inesperado para " + item.Path + ".");
+                                using (Stream input = response.GetResponseStream())
+                                using (FileStream file = new FileStream(partialFile,
+                                    offset == 0 ? FileMode.Create : FileMode.Append, FileAccess.Write, FileShare.None))
+                                {
+                                    int read;
+                                    while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                                    {
+                                        file.Write(buffer, 0, read);
+                                        completed += read;
+                                        if (progress != null)
+                                            progress(completed, total, item.Path);
+                                    }
+                                }
+                            }
+                            if (new FileInfo(partialFile).Length < item.Size && ++retries > 3)
+                                throw new EndOfStreamException("La conexión se interrumpió varias veces al descargar " + item.Path + ".");
+                        }
+                        catch (WebException)
+                        {
+                            if (++retries > 3)
+                                throw;
+                            Thread.Sleep(1000 * retries);
+                        }
+                        catch (IOException)
+                        {
+                            if (++retries > 3)
+                                throw;
+                            Thread.Sleep(1000 * retries);
+                        }
+                    }
+                    File.Move(partialFile, output);
+                    FileInfo info = new FileInfo(output);
+                    if (info.Length != item.Size ||
+                        !String.Equals(ManifestTools.HashFile(output), item.Sha256, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("La verificación SHA-256 falló para " + item.Path + ".");
+                }
+
+                string invalid = ClientValidation.GetInvalidClient(temporary);
+                if (invalid != null)
+                    throw new InvalidDataException("El paquete descargado no es un cliente válido: " + invalid + ".");
+                foreach (string locale in new[] { "enUS", "enGB", "esES" })
+                {
+                    string localeDirectory = Path.Combine(temporary, "Data", locale);
+                    if (Directory.Exists(localeDirectory))
+                        File.WriteAllText(Path.Combine(localeDirectory, "realmlist.wtf"),
+                            "set realmlist " + realm + "\r\n", Encoding.ASCII);
+                }
+                Directory.Move(temporary, target);
+                installed = true;
+            }
+            finally
+            {
+                if (!installed && Directory.Exists(temporary))
+                    Directory.Delete(temporary, true);
+            }
+        }
+
+        private static HttpWebRequest CreatePinnedRequest(Uri uri, string pin)
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
+            request.Method = "GET";
+            request.Proxy = null;
+            request.Timeout = 300000;
+            request.ReadWriteTimeout = 300000;
+            request.ServerCertificateValidationCallback = delegate(object sender,
+                System.Security.Cryptography.X509Certificates.X509Certificate certificate,
+                System.Security.Cryptography.X509Certificates.X509Chain chain,
+                System.Net.Security.SslPolicyErrors errors)
+            {
+                if (certificate == null)
+                    return false;
+                using (SHA256 sha = SHA256.Create())
+                    return String.Equals(ManifestTools.ToHex(sha.ComputeHash(certificate.GetRawCertData())),
+                        pin, StringComparison.OrdinalIgnoreCase);
+            };
+            return request;
         }
     }
 

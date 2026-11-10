@@ -22,22 +22,38 @@ namespace AzerothCoreLauncher
     internal static class LauncherServer
     {
         internal const int Port = 8787;
+        internal const int ClientFilesPort = 8788;
         private static readonly ConcurrentDictionary<string, List<DateTime>> RegistrationAttempts =
             new ConcurrentDictionary<string, List<DateTime>>(StringComparer.Ordinal);
         private static readonly object LogLock = new object();
         private static readonly object RateLock = new object();
         private static readonly SemaphoreSlim Connections = new SemaphoreSlim(32);
+        private static readonly object ClientManifestLock = new object();
+        private static ClientManifest HostedClientManifest;
+        private static string HostedClientRoot;
 
         internal static int Run()
         {
+            return RunService(Port, false);
+        }
+
+        internal static int RunClientFiles()
+        {
+            return RunService(ClientFilesPort, true);
+        }
+
+        private static int RunService(int port, bool clientFilesOnly)
+        {
             try
             {
+                HostedClientRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                    "AzerotBatzoki-ClientDistribution");
                 X509Certificate2 certificate = LoadOrCreateCertificate();
-                TcpListener listener = new TcpListener(IPAddress.Any, Port);
+                TcpListener listener = new TcpListener(IPAddress.Any, port);
                 try
                 {
                     listener.Start(128);
-                    Log("Servicio de cuentas HTTPS iniciado; puerto=" + Port +
+                    Log((clientFilesOnly ? "Host de cliente HTTPS" : "Servicio de cuentas HTTPS") + " iniciado; puerto=" + port +
                         " huella=" + GetFingerprint(certificate));
                     while (true)
                     {
@@ -49,7 +65,7 @@ namespace AzerothCoreLauncher
                         }
                         ThreadPool.QueueUserWorkItem(delegate
                         {
-                            try { HandleClient(client, certificate); }
+                            try { HandleClient(client, certificate, clientFilesOnly); }
                             finally { Connections.Release(); }
                         });
                     }
@@ -81,7 +97,7 @@ namespace AzerothCoreLauncher
         internal static bool EnsureServerRunning()
         {
             GetFingerprint();
-            if (IsServerAvailable())
+            if (IsServerAvailable(Port))
                 return true;
 
             string executable = System.Reflection.Assembly.GetExecutingAssembly().Location;
@@ -100,18 +116,44 @@ namespace AzerothCoreLauncher
             for (int attempt = 0; attempt < 30; attempt++)
             {
                 Thread.Sleep(250);
-                if (IsServerAvailable())
+                if (IsServerAvailable(Port))
                     return true;
             }
             throw new InvalidOperationException("El servicio LAN no abrió el puerto 8787. Revisa el registro de servidor.");
         }
 
-        private static bool IsServerAvailable()
+        internal static bool EnsureClientServerRunning()
+        {
+            GetFingerprint();
+            if (IsServerAvailable(ClientFilesPort))
+                return true;
+            string executable = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            ProcessStartInfo start = new ProcessStartInfo();
+            start.FileName = executable;
+            start.Arguments = "--serve-client";
+            start.WorkingDirectory = Path.GetDirectoryName(executable);
+            start.UseShellExecute = false;
+            start.CreateNoWindow = true;
+            start.WindowStyle = ProcessWindowStyle.Hidden;
+            Process process = Process.Start(start);
+            if (process == null)
+                throw new InvalidOperationException("No se pudo iniciar el host de descarga.");
+            process.Dispose();
+            for (int attempt = 0; attempt < 30; attempt++)
+            {
+                Thread.Sleep(250);
+                if (IsServerAvailable(ClientFilesPort))
+                    return true;
+            }
+            throw new InvalidOperationException("El host de descarga no abrió el puerto 8788. Revisa el registro de servidor.");
+        }
+
+        private static bool IsServerAvailable(int port)
         {
             try
             {
                 string pin = GetFingerprint();
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:" + Port + "/api/health");
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:" + port + "/api/health");
                 request.Proxy = null;
                 request.Timeout = 1000;
                 request.ReadWriteTimeout = 1000;
@@ -143,7 +185,7 @@ namespace AzerothCoreLauncher
             }
         }
 
-        private static void HandleClient(TcpClient client, X509Certificate2 certificate)
+        private static void HandleClient(TcpClient client, X509Certificate2 certificate, bool clientFilesOnly)
         {
             using (client)
             using (NetworkStream network = client.GetStream())
@@ -177,10 +219,10 @@ namespace AzerothCoreLauncher
                     string path = query < 0 ? target : target.Substring(0, query);
                     if (String.Equals(method, "GET", StringComparison.Ordinal))
                     {
-                        HandleGet(ssl, path);
+                        HandleGet(ssl, path, headers, client.Client.RemoteEndPoint, clientFilesOnly);
                         return;
                     }
-                    if (String.Equals(method, "POST", StringComparison.Ordinal) &&
+                    if (!clientFilesOnly && String.Equals(method, "POST", StringComparison.Ordinal) &&
                         String.Equals(path, "/api/register", StringComparison.Ordinal))
                     {
                         HandleRegister(ssl, headers, client.Client.RemoteEndPoint, ReadBody(ssl, headers));
@@ -198,14 +240,135 @@ namespace AzerothCoreLauncher
             }
         }
 
-        private static void HandleGet(SslStream stream, string path)
+        private static void HandleGet(SslStream stream, string path, Dictionary<string, string> headers,
+            EndPoint remote, bool clientFilesOnly)
         {
             if (path == "/api/health")
             {
                 SendJson(stream, 200, new ApiResponse { Ok = true, Message = "launcher-ready" });
                 return;
             }
+            if (path == "/client/manifest.json" || path.StartsWith("/client/files/", StringComparison.Ordinal))
+            {
+                if (!clientFilesOnly)
+                {
+                    SendText(stream, 404, "Not Found", "No encontrado.");
+                    return;
+                }
+                IPEndPoint endpoint = remote as IPEndPoint;
+                if (endpoint == null || !IsPrivateAddress(endpoint.Address.ToString()))
+                {
+                    SendText(stream, 403, "Forbidden", "Solo disponible en la red privada.");
+                    return;
+                }
+                ClientManifest manifest = GetHostedClientManifest();
+                if (path == "/client/manifest.json")
+                {
+                    SendText(stream, 200, "OK", JsonTools.Serialize(manifest), "application/json; charset=utf-8");
+                    return;
+                }
+                string relative = Uri.UnescapeDataString(path.Substring("/client/files/".Length));
+                SendClientFile(stream, manifest, relative, headers);
+                return;
+            }
             SendText(stream, 404, "Not Found", "No encontrado.");
+        }
+
+        private static ClientManifest GetHostedClientManifest()
+        {
+            if (HostedClientManifest != null)
+                return HostedClientManifest;
+            lock (ClientManifestLock)
+            {
+                if (HostedClientManifest == null)
+                    HostedClientManifest = ManifestTools.Build(HostedClientRoot, null);
+                return HostedClientManifest;
+            }
+        }
+
+        private static void SendClientFile(Stream stream, ClientManifest manifest, string relative,
+            Dictionary<string, string> headers)
+        {
+            if (!ManifestTools.IsSafeManifestPath(relative))
+            {
+                SendText(stream, 400, "Bad Request", "Ruta no válida.");
+                return;
+            }
+            ManifestFile item = manifest.Files.FirstOrDefault(file =>
+                String.Equals(file.Path, relative, StringComparison.OrdinalIgnoreCase));
+            if (item == null)
+            {
+                SendText(stream, 404, "Not Found", "Archivo no encontrado.");
+                return;
+            }
+
+            string root = Path.GetFullPath(HostedClientRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string filePath = Path.GetFullPath(Path.Combine(root, item.Path.Replace('/', Path.DirectorySeparatorChar)));
+            if ((File.GetAttributes(root.TrimEnd(Path.DirectorySeparatorChar)) & FileAttributes.ReparsePoint) != 0 ||
+                !filePath.StartsWith(root, StringComparison.OrdinalIgnoreCase) || HasReparsePoint(root, filePath) || !File.Exists(filePath))
+            {
+                SendText(stream, 404, "Not Found", "Archivo no disponible.");
+                return;
+            }
+            FileInfo info = new FileInfo(filePath);
+            if (info.Length != item.Size)
+            {
+                SendText(stream, 409, "Conflict", "El archivo del servidor cambió; actualiza el manifiesto.");
+                return;
+            }
+            long offset = 0;
+            string range;
+            bool partial = headers.TryGetValue("Range", out range);
+            if (partial && !TryParseStartRange(range, item.Size, out offset))
+            {
+                SendText(stream, 416, "Range Not Satisfiable", "Rango no válido.");
+                return;
+            }
+            long remaining = item.Size - offset;
+            string header = "HTTP/1.1 " + (partial ? "206 Partial Content" : "200 OK") +
+                "\r\nContent-Type: application/octet-stream\r\nX-Content-Type-Options: nosniff\r\nContent-Length: " +
+                remaining.ToString(CultureInfo.InvariantCulture) + "\r\n" +
+                (partial ? "Content-Range: bytes " + offset.ToString(CultureInfo.InvariantCulture) + "-" +
+                    (item.Size - 1).ToString(CultureInfo.InvariantCulture) + "/" + item.Size.ToString(CultureInfo.InvariantCulture) + "\r\n" : String.Empty) +
+                "Connection: close\r\n\r\n";
+            byte[] bytes = Encoding.ASCII.GetBytes(header);
+            stream.Write(bytes, 0, bytes.Length);
+            using (FileStream file = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (offset > 0)
+                    file.Seek(offset, SeekOrigin.Begin);
+                byte[] buffer = new byte[1024 * 1024];
+                int read;
+                while ((read = file.Read(buffer, 0, buffer.Length)) > 0)
+                    stream.Write(buffer, 0, read);
+            }
+            stream.Flush();
+        }
+
+        internal static bool TryParseStartRange(string value, long size, out long offset)
+        {
+            offset = 0;
+            if (size <= 0 || String.IsNullOrEmpty(value) || value.Length <= 7 ||
+                !value.StartsWith("bytes=", StringComparison.OrdinalIgnoreCase) ||
+                !value.EndsWith("-", StringComparison.Ordinal))
+                return false;
+            return Int64.TryParse(value.Substring(6, value.Length - 7), NumberStyles.None,
+                CultureInfo.InvariantCulture, out offset) && offset < size;
+        }
+
+        private static bool HasReparsePoint(string root, string filePath)
+        {
+            string relative = filePath.Substring(root.Length);
+            string current = root.TrimEnd(Path.DirectorySeparatorChar);
+            foreach (string part in relative.Split(Path.DirectorySeparatorChar))
+            {
+                current = Path.Combine(current, part);
+                if (!File.Exists(current) && !Directory.Exists(current))
+                    return true;
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    return true;
+            }
+            return false;
         }
 
         private static void HandleRegister(SslStream stream, Dictionary<string, string> headers, EndPoint remote, byte[] body)

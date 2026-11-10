@@ -17,7 +17,7 @@ try {
     $result
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\LaunchWoW\Compilar.ps1
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion del launcher C#' }
-    $files = @('.gitattributes', '.gitignore', 'README.md', 'Instalar_WoW_Server.exe', 'installer.ps1', 'main.go', 'main_test.go', 'Test-Installer.ps1', 'Compilar.ps1', 'LEEME.md', 'LEEME.txt', 'CAMBIOS.txt', 'INFORME_REVISION.md', 'LaunchWoW\LaunchWoW.exe', 'LaunchWoW\Program.cs', 'LaunchWoW\Models.cs', 'LaunchWoW\LauncherServer.cs', 'LaunchWoW\LauncherForm.cs', 'LaunchWoW\Compilar.ps1')
+    $files = @('.gitattributes', '.gitignore', 'README.md', 'Instalar_WoW_Server.exe', 'installer.ps1', 'main.go', 'main_test.go', 'Test-Installer.ps1', 'Compilar.ps1', 'LEEME.md', 'LEEME.txt', 'CAMBIOS.txt', 'INFORME_REVISION.md', 'LaunchWoW\AzerotBatzoki.exe', 'LaunchWoW\Assets\LaunchWoW.exe', 'LaunchWoW\Program.cs', 'LaunchWoW\Models.cs', 'LaunchWoW\LauncherServer.cs', 'LaunchWoW\LauncherForm.cs', 'LaunchWoW\Compilar.ps1', 'LaunchWoW\Assets\Batzoki-Northrend.png', 'LaunchWoW\Assets\AzerotBatzoki.ico', 'LaunchWoW\Enable-DownloadHostFirewall.ps1')
     $sums = foreach ($file in $files) { ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $file) }
     Set-Content -LiteralPath SHA256SUMS-local.txt -Value $sums -Encoding ASCII
 } finally { Pop-Location }

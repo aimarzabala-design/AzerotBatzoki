@@ -7,16 +7,17 @@ This repository contains the Windows PowerShell installer for an AzerothCore ser
 1. Download the repository ZIP and extract it to a local folder.
 2. On the Windows 10 Pro x64 server PC, run `Instalar_WoW_Server.exe` as administrator and follow the prompts. Allow time for WSL, Docker, and AzerothCore to install.
 3. Start the server and verify that authserver and worldserver are running.
-4. On each player PC, run `LaunchWoW\LaunchWoW.exe` and select an existing compatible client, or choose the option to install from a client ZIP you already have.
-5. Press **JUGAR**. Create accounts through the launcher's LAN registration flow or with the server's account-management commands.
+4. On the download-host PC (`192.168.201.209`), build and run `LaunchWoW\AzerotBatzoki.exe`, then choose **ACTIVAR LAN**. This serves the private client on HTTPS port `8788`.
+5. On each player PC, run `LaunchWoW\AzerotBatzoki.exe`, choose **CLIENTE / INSTALAR** → **No**, and let the launcher download, verify and configure the client. Press **JUGAR** to start WoW.
 
 See [LEEME.md](./LEEME.md) for detailed installation and troubleshooting instructions.
 
 ## Network and client requirements
 
-- The launcher is configured for realm and account service address `192.168.201.213`. This is a private LAN address and only works for devices that can reach the server on the same local network. Internet play requires a separately planned public network setup; the installer does not configure router access.
-- The account-registration service uses TLS certificate pinning. Activate it on the server PC and provide its certificate fingerprint to players through a separate trusted channel. Do not expose port 8787 to the public Internet.
-- The repository does not include or download a WoW client, game executables, MPQ archives, client ZIP parts, add-ons bundled with a client, or per-user game data. Each player must supply a compatible client or client ZIP separately. The launcher checks for WoW 3.3.5a build 12340, `Wow.exe`, `Data\common.MPQ`, and a locale directory (`Data\enUS`, `Data\enGB`, or `Data\esES`). It does not require `Data\interface.MPQ`.
+- The game realm is `192.168.201.213` (authentication port `3724`, world port `8085`). The separate client-download host is `192.168.201.209:8788`; both addresses require LAN access.
+- Keep the download host running while players install. The launcher serves only manifest-listed client files over HTTPS, restricts requests to private-network addresses, pins the host certificate, verifies SHA-256 for every file, and retries/resumes a transfer up to three times while the installer remains open. It reads `Documents\AzerotBatzoki-ClientDistribution`; client files and the private certificate are not in Git. If the certificate is rotated, rebuild and redistribute the launcher with the new public fingerprint; never distribute the PFX.
+- On the download host, run PowerShell as administrator and execute `LaunchWoW\Enable-DownloadHostFirewall.ps1` once. It adds inbound TCP `8788` only for `LocalSubnet` on the Private profile. Port `8787` is left as-is for the existing account service; this launcher change does not alter the remote server or its ports.
+- The launcher checks WoW 3.3.5a build 12340, `Wow.exe`, `Data\common.MPQ`, and one locale (`Data\enUS`, `Data\enGB`, or `Data\esES`). `Data\interface.MPQ` is not required. It omits `Interface`, `WTF`, caches, logs, screenshots, errors, realmlist files, and Frostbound launcher files from the download manifest.
 - The server must be installed and running before players can log in. The launcher and installer do not themselves host a public game service.
 
 The `.gitignore` excludes common client assets and local credentials as a safeguard. Do not remove these exclusions to commit client archives or secrets.
@@ -35,13 +36,15 @@ Build the complete package and run the isolated tests:
 .\Compilar.ps1
 ```
 
-To build and self-test only the desktop launcher:
+To build and self-test the branded desktop launcher (`AzerotBatzoki.exe`):
 
 ```powershell
 .\LaunchWoW\Compilar.ps1
 ```
 
-`Test-Installer.ps1` uses a simulated Docker command and does not install WSL or change firewall rules or scheduled tasks. Passing build tests is not a substitute for testing the server installation and a real login on the target network.
+The custom launcher embeds its multi-resolution Windows icon (`LaunchWoW\Assets\AzerotBatzoki.ico`) and the launcher artwork at build time, so those visual assets do not need to sit beside `AzerotBatzoki.exe` on player PCs. The legacy `LaunchWoW.exe` is a separate executable kept at `LaunchWoW\Assets\LaunchWoW.exe`; the build above creates `AzerotBatzoki.exe` and does not replace it.
+
+`Test-Installer.ps1` uses a simulated Docker command and does not install WSL or change firewall rules or scheduled tasks. The launcher self-test covers manifest safety and installer behavior; a full 17+ GB download, real game launch, and connection from another PC still need LAN verification.
 
 ## Collaboration
 
