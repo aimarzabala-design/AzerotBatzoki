@@ -61,3 +61,9 @@ El EXE no está firmado y Windows puede mostrar editor desconocido. SHA256SUMS-l
 ## Fuentes y recompilación
 
 Incluye las fuentes Go del instalador de servidor y las fuentes C# del launcher de escritorio. Para compilar el paquete completo se requieren Go, Git Bash y el compilador de .NET Framework; el launcher se ejecuta sin Go. El archivo Test-Installer.ps1 usa Docker simulado y no instala WSL ni modifica tareas/firewall.
+
+## Actualizaciones con muchos addons — 1.2.1
+
+La actualización distingue la comparación inicial de la descarga de archivos nuevos o distintos. Durante la descarga muestra el número de archivos terminados, usa hasta cuatro transferencias simultáneas y solo llega al 100 % cuando todos están verificados. El host ignora cambios de WTF, registros y otras carpetas excluidas al mantener su manifiesto en memoria. La primera lectura del manifiesto tras un cambio de distribución todavía puede tardar mientras calcula hashes.
+
+Cierra WoW y el launcher en el PC del jugador, sustituye AzerotBatzoki.exe por la versión 1.2.1 y vuelve a abrirlo. No basta con actualizar solo el host. Los addons y ajustes personales se conservan conforme a las reglas anteriores.

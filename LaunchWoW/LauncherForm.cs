@@ -41,10 +41,14 @@ namespace AzerothCoreLauncher
         private bool existingClientDetected;
         private readonly List<Button> actionButtons = new List<Button>();
         private int operationRunning;
+        private readonly object progressUpdateLock = new object();
+        private int pendingProgressValue;
+        private string pendingProgressMessage;
+        private bool progressUpdateQueued;
 
         internal LauncherForm()
         {
-            Text = "AzerotBatzoki | Launcher 1.2";
+            Text = "AzerotBatzoki | Launcher 1.2.1";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1100, 730);
             MinimumSize = SizeFromClientSize(new Size(1000, 660));
@@ -906,12 +910,7 @@ namespace AzerothCoreLauncher
             RunOperation("Comparando cliente", delegate(Action<string> log, Action<int, string> report)
             {
                 log("Comparando tamaños y SHA-256 con el host privado " + ClientDownload.Server.Host + ".");
-                ClientDownload.Update(ClientDownload.Server, ClientDownload.CertificatePin, target,
-                    delegate(long done, long total, string path)
-                    {
-                        int percent = total <= 0 ? 100 : (int)Math.Min(99, done * 100 / total);
-                        report(percent, path + " · " + FormatBytes(done) + " / " + FormatBytes(total));
-                    });
+                ClientDownload.Update(ClientDownload.Server, ClientDownload.CertificatePin, target, null, report);
                 report(100, "Cliente actualizado.");
             }, delegate
             {
@@ -1050,27 +1049,40 @@ namespace AzerothCoreLauncher
 
         private void ReportProgress(int value, string message)
         {
-            if (IsDisposed || !IsHandleCreated)
-                return;
+            if (IsDisposed || !IsHandleCreated) return;
+            lock (progressUpdateLock)
+            {
+                pendingProgressValue = Math.Max(0, Math.Min(100, value));
+                pendingProgressMessage = message;
+                if (progressUpdateQueued) return;
+                progressUpdateQueued = true;
+            }
             try
             {
                 BeginInvoke((MethodInvoker)delegate
                 {
-                    progress.Value = Math.Max(progress.Minimum, Math.Min(progress.Maximum, value));
-                    if (homeProgress != null)
+                    int latestValue;
+                    string latestMessage;
+                    lock (progressUpdateLock)
                     {
-                        homeProgressPercent = Math.Max(0, Math.Min(100, value));
-                        homeProgress.Invalidate();
+                        latestValue = pendingProgressValue;
+                        latestMessage = pendingProgressMessage;
+                        progressUpdateQueued = false;
                     }
-                    if (!String.IsNullOrEmpty(message))
+                    progress.Value = latestValue;
+                    homeProgressPercent = latestValue;
+                    if (homeProgress != null) homeProgress.Invalidate();
+                    if (!String.IsNullOrEmpty(latestMessage))
                     {
-                        status.Text = message;
-                        if (homeStatus != null)
-                            homeStatus.Text = message;
+                        status.Text = latestMessage;
+                        if (homeStatus != null) homeStatus.Text = latestMessage;
                     }
                 });
             }
-            catch (InvalidOperationException) { }
+            catch (InvalidOperationException)
+            {
+                lock (progressUpdateLock) progressUpdateQueued = false;
+            }
         }
 
         private static HttpWebRequest CreatePinnedRequest(Uri uri, string pin)

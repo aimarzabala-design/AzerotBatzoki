@@ -13,8 +13,8 @@ using System.Runtime.Versioning;
 [assembly: AssemblyTitle("AzerotBatzoki")]
 [assembly: AssemblyProduct("AzerotBatzoki")]
 [assembly: AssemblyDescription("Launcher privado de AzerotBatzoki para World of Warcraft 3.3.5a")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.2.1.0")]
+[assembly: AssemblyFileVersion("1.2.1.0")]
 [assembly: TargetFramework(".NETFramework,Version=v4.8")]
 
 namespace AzerothCoreLauncher
@@ -77,6 +77,7 @@ namespace AzerothCoreLauncher
                 ClientDownload.Server.AbsoluteUri != "https://192.168.201.209:8788/client/" ||
                 ClientDownload.ManifestUri(ClientDownload.Server).AbsolutePath != "/client/manifest.json" ||
                 ClientDownload.FileUri(ClientDownload.Server, "Data/common.MPQ").AbsolutePath != "/client/files/Data/common.MPQ" ||
+                !TestWatcherExclusions() ||
                 !TestWindowLayout() ||
                 !TestPartialFileLength() ||
                 !TestUpdateComparison() ||
@@ -92,6 +93,52 @@ namespace AzerothCoreLauncher
 
             Console.WriteLine("SELF_TEST_OK");
             return 0;
+        }
+
+        private static bool TestWatcherExclusions()
+        {
+            MethodInfo filter = typeof(LauncherServer).GetMethod("IsPublishedClientChange", BindingFlags.Static | BindingFlags.NonPublic);
+            if (filter == null)
+            {
+                Console.Error.WriteLine("WATCHER_FILTER_FAILED: los cambios excluidos invalidan el manifiesto.");
+                return false;
+            }
+            foreach (string path in new[] { "WTF/Config.wtf", "Logs/WoW.log", "Data/enUS/realmlist.wtf", "Interface/FrameXML/test.lua" })
+                if ((bool)filter.Invoke(null, new object[] { path })) return false;
+            foreach (string path in new[] { "Interface/AddOns/Dominos/Dominos.toc", "Interface/AddOns/Mapster/Mapster.lua", "Data/common.MPQ" })
+                if (!(bool)filter.Invoke(null, new object[] { path })) return false;
+            string root = Path.Combine(Path.GetTempPath(), "AB-watch-" + Guid.NewGuid().ToString("N"));
+            FieldInfo rootField = typeof(LauncherServer).GetField("HostedClientRoot", BindingFlags.Static | BindingFlags.NonPublic);
+            FieldInfo manifestField = typeof(LauncherServer).GetField("HostedClientManifest", BindingFlags.Static | BindingFlags.NonPublic);
+            FieldInfo watcherField = typeof(LauncherServer).GetField("HostedClientWatcher", BindingFlags.Static | BindingFlags.NonPublic);
+            object previousRoot = rootField.GetValue(null), previousManifest = manifestField.GetValue(null);
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(root, "WTF"));
+                Directory.CreateDirectory(Path.Combine(root, "Interface", "AddOns", "Dominos"));
+                rootField.SetValue(null, root);
+                typeof(LauncherServer).GetMethod("WatchHostedClientFiles", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+                System.Threading.Thread.Sleep(500); // Drain fixture-directory creation notifications.
+                ClientManifest marker = new ClientManifest();
+                manifestField.SetValue(null, marker);
+                File.WriteAllText(Path.Combine(root, "WTF", "Config.wtf"), "synthetic settings");
+                System.Threading.Thread.Sleep(500);
+                if (!Object.ReferenceEquals(marker, manifestField.GetValue(null))) { Console.Error.WriteLine("WATCHER_EXCLUDED_EVENT_INVALIDATED_CACHE"); return false; }
+                File.WriteAllText(Path.Combine(root, "Interface", "AddOns", "Dominos", "Dominos.toc"), "synthetic addon");
+                if (!System.Threading.SpinWait.SpinUntil(delegate { return manifestField.GetValue(null) == null; }, 2000)) { Console.Error.WriteLine("WATCHER_PUBLISHED_EVENT_NOT_RECEIVED"); return false; }
+            }
+            finally
+            {
+                FileSystemWatcher watcher = watcherField.GetValue(null) as FileSystemWatcher;
+                if (watcher != null) watcher.Dispose();
+                watcherField.SetValue(null, null);
+                rootField.SetValue(null, previousRoot);
+                manifestField.SetValue(null, previousManifest);
+                if (Directory.Exists(root) && Path.GetFullPath(root).StartsWith(Path.GetFullPath(Path.GetTempPath()), StringComparison.OrdinalIgnoreCase))
+                    Directory.Delete(root, true);
+            }
+            Console.WriteLine("WATCHER_FILTER_OK");
+            return true;
         }
 
         private static bool TestWindowLayout()
@@ -126,7 +173,7 @@ namespace AzerothCoreLauncher
                     bool callbackRan = false;
                     Action<Action<string>, Action<int, string>> operation = delegate(Action<string> log, Action<int, string> report)
                     {
-                        report(50, "Progreso de prueba");
+                        for (int i = 0; i < 5000; i++) report(i % 100, "Progreso de prueba " + i);
                     };
                     Action completed = delegate
                     {

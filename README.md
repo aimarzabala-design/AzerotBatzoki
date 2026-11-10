@@ -24,9 +24,9 @@ The `.gitignore` excludes common client assets and local credentials as a safegu
 
 ## Client and addon updates
 
-Place shared addons under `Documents\AzerotBatzoki-ClientDistribution\Interface\AddOns\AddonName` on the download-host PC. Complete the copy before players start an update. The host watches the distribution folder and rebuilds its cached manifest on the next request after changes; calculating hashes may take time. Restart the host once after upgrading its executable to enable this behavior.
+Place shared addons under `Documents\AzerotBatzoki-ClientDistribution\Interface\AddOns\AddonName` on the download-host PC. Complete the copy before players start an update. The host watches published distribution files and rebuilds its cached manifest on the next request after changes; calculating hashes may take time. Changes to excluded settings, logs and caches do not invalidate it. Restart the host once after upgrading its executable to enable this behavior.
 
-On player PCs, close WoW, select the existing client through **INSTALAR** or **CUENTA · AJUSTES**, then press **ACTUALIZAR**. The launcher compares file sizes and SHA-256 hashes with the host, downloads missing or changed files, verifies them, and replaces each file after verification. It preserves files absent from the manifest, including local addons and settings; an addon with the same path as a shared addon will be updated to the host's version. It does not remove addons deleted from the distribution.
+On player PCs, close WoW, select the existing client through **INSTALAR** or **CUENTA · AJUSTES**, then press **ACTUALIZAR**. The launcher compares file sizes and SHA-256 hashes with the host, downloads missing or changed files, verifies them, and replaces each file after verification. It preserves files absent from the manifest, including local addons and settings; an addon with the same path as a shared addon will be updated to the host's version. It does not remove addons deleted from the distribution. Version 1.2.1 separates comparison from transfer, downloads up to four pending files concurrently, and reaches 100% only after every replacement is verified. Copy the new launcher to player PCs as well as the host; an already running launcher continues using its old code.
 
 ## Build and test on Windows
 
@@ -59,3 +59,5 @@ If the repository is private, the owner must invite collaborators through GitHub
 ## Licensing
 
 No license is granted here for third-party game clients or assets. This repository does not redistribute those files. Check the licenses and attribution notices for third-party components before modifying or redistributing them.
+
+Update regression checks: run LaunchWoW\Tests\Test-Updates.ps1. It uses synthetic files and an HTTP listener bound to loopback, checks progress and concurrency, and verifies that corrupt downloads preserve the original. It does not download or modify real game data.

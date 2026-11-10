@@ -296,13 +296,26 @@ namespace AzerothCoreLauncher
             HostedClientWatcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName |
                 NotifyFilters.LastWrite | NotifyFilters.Size;
             HostedClientWatcher.InternalBufferSize = 32768;
-            FileSystemEventHandler changed = delegate { InvalidateHostedClientManifest(); };
+            FileSystemEventHandler changed = delegate(object sender, FileSystemEventArgs e)
+            {
+
+                if (IsPublishedClientChange(e.Name)) InvalidateHostedClientManifest();
+            };
             HostedClientWatcher.Changed += changed;
             HostedClientWatcher.Created += changed;
             HostedClientWatcher.Deleted += changed;
-            HostedClientWatcher.Renamed += delegate { InvalidateHostedClientManifest(); };
+            HostedClientWatcher.Renamed += delegate(object sender, RenamedEventArgs e)
+            {
+                if (IsPublishedClientChange(e.OldName) || IsPublishedClientChange(e.Name))
+                    InvalidateHostedClientManifest();
+            };
             HostedClientWatcher.Error += delegate { InvalidateHostedClientManifest(); };
             HostedClientWatcher.EnableRaisingEvents = true;
+        }
+
+        internal static bool IsPublishedClientChange(string relativePath)
+        {
+            return !ManifestTools.IsExcluded(relativePath);
         }
 
         private static void InvalidateHostedClientManifest()

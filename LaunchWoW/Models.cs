@@ -467,9 +467,10 @@ namespace AzerothCoreLauncher
         }
 
         internal static void Update(Uri server, string pin, string destination,
-            Action<long, long, string> progress)
+            Action<long, long, string> progress, Action<int, string> phaseProgress = null)
         {
             ClientValidation.EnsureClientStopped(destination);
+            if (phaseProgress != null) phaseProgress(0, "Leyendo la lista de archivos del servidor...");
             Uri baseUri = new Uri(server.AbsoluteUri.TrimEnd('/') + "/");
             ClientManifest manifest;
             HttpWebRequest manifestRequest = CreatePinnedRequest(ManifestUri(baseUri), pin);
@@ -479,7 +480,6 @@ namespace AzerothCoreLauncher
             using (Stream input = response.GetResponseStream())
                 manifest = JsonTools.Deserialize<ClientManifest>(input);
             ManifestTools.Validate(manifest);
-
             string root = Path.GetFullPath(destination).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             if (!Directory.Exists(root.TrimEnd(Path.DirectorySeparatorChar)))
                 throw new DirectoryNotFoundException("No se encuentra la carpeta del cliente.");
@@ -490,39 +490,86 @@ namespace AzerothCoreLauncher
                 throw new InvalidDataException("El cliente seleccionado no es compatible: " + invalid + ".");
 
             long total = manifest.Files.Sum(item => item.Size);
-            long completed = 0;
-            foreach (ManifestFile item in manifest.Files)
+            long unchangedBytes = 0;
+            List<ManifestFile> pending = new List<ManifestFile>();
+            for (int i = 0; i < manifest.Files.Count; i++)
             {
-                string output = Path.GetFullPath(Path.Combine(root,
-                    item.Path.Replace('/', Path.DirectorySeparatorChar)));
+                ManifestFile item = manifest.Files[i];
+                if (phaseProgress != null)
+                    phaseProgress((int)((long)i * 30 / manifest.Files.Count),
+                        "Comparando " + (i + 1) + "/" + manifest.Files.Count + ": " + item.Path);
+                string output = Path.GetFullPath(Path.Combine(root, item.Path.Replace('/', Path.DirectorySeparatorChar)));
                 if (!output.StartsWith(root, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException("El manifiesto contiene una ruta fuera del cliente.");
                 EnsureSafeUpdatePath(root, output);
                 if (IsFileCurrent(output, item))
                 {
-                    completed += item.Size;
-                    if (progress != null)
-                        progress(completed, total, "Al día: " + item.Path);
-                    continue;
+                    unchangedBytes += item.Size;
+                    if (progress != null) progress(unchangedBytes, total, "Al día: " + item.Path);
                 }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(output));
-                string staging = output + ".azerotbatzoki-update-" + Guid.NewGuid().ToString("N");
-                DownloadUpdateFile(baseUri, pin, item, staging,
-                    delegate(long received, string path)
-                    {
-                        if (progress != null)
-                            progress(completed + received, total, "Actualizando " + path);
-                    });
-                EnsureSafeUpdatePath(root, output);
-                if (File.Exists(output))
-                    File.Replace(staging, output, null);
-                else
-                    File.Move(staging, output);
-                completed += item.Size;
-                if (progress != null)
-                    progress(completed, total, "Actualizado: " + item.Path);
+                else pending.Add(item);
             }
+            if (pending.Count == 0)
+            {
+                if (phaseProgress != null) phaseProgress(100, "El cliente ya está al día.");
+                return;
+            }
+
+            long transferTotal = pending.Sum(item => item.Size);
+            long transferred = 0;
+            int finished = 0;
+            object progressLock = new object();
+            Action<string> reportDownload = delegate(string path)
+            {
+                lock (progressLock)
+                {
+                    long bytes = Interlocked.Read(ref transferred);
+                    double filesFraction = (double)Volatile.Read(ref finished) / pending.Count;
+                    double bytesFraction = transferTotal == 0 ? filesFraction : Math.Min(1.0, (double)bytes / transferTotal);
+                    if (phaseProgress != null)
+                        phaseProgress(30 + (int)(69 * (filesFraction + bytesFraction) / 2),
+                            "Actualizando " + Volatile.Read(ref finished) + "/" + pending.Count + ": " + path);
+                    if (progress != null) progress(unchangedBytes + bytes, total, "Actualizando " + path);
+                }
+            };
+            reportDownload("preparando descarga de archivos nuevos o distintos");
+            try
+            {
+                System.Threading.Tasks.Parallel.ForEach(pending,
+                    new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 4 }, delegate(ManifestFile item)
+                {
+                    string output = Path.GetFullPath(Path.Combine(root, item.Path.Replace('/', Path.DirectorySeparatorChar)));
+                    EnsureSafeUpdatePath(root, output);
+                    Directory.CreateDirectory(Path.GetDirectoryName(output));
+                    string staging = output + ".azerotbatzoki-update-" + Guid.NewGuid().ToString("N");
+                    long previousReceived = 0;
+                    try
+                    {
+                        DownloadUpdateFile(baseUri, pin, item, staging, delegate(long received, string path)
+                        {
+                            Interlocked.Add(ref transferred, received - previousReceived);
+                            previousReceived = received;
+                            reportDownload(path);
+                        });
+                        EnsureSafeUpdatePath(root, output);
+                        if (File.Exists(output)) File.Replace(staging, output, null);
+                        else File.Move(staging, output);
+                        Interlocked.Increment(ref finished);
+                        reportDownload(item.Path);
+                    }
+                    finally
+                    {
+                        if (File.Exists(staging)) File.Delete(staging);
+                        if (File.Exists(staging + ".part")) File.Delete(staging + ".part");
+                    }
+                });
+            }
+            catch (AggregateException ex)
+            {
+                Exception cause = ex.Flatten().InnerExceptions[0];
+                throw new IOException("No se pudo terminar la actualización: " + cause.Message, cause);
+            }
+            if (phaseProgress != null) phaseProgress(100, "Actualización verificada: " + finished + " archivos.");
         }
 
         internal static bool IsFileCurrent(string path, ManifestFile item)
@@ -624,6 +671,7 @@ namespace AzerothCoreLauncher
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
             request.Method = "GET";
             request.Proxy = null;
+            request.ServicePoint.ConnectionLimit = 4;
             request.Timeout = 300000;
             request.ReadWriteTimeout = 300000;
             request.ServerCertificateValidationCallback = delegate(object sender,
