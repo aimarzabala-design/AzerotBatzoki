@@ -13,7 +13,8 @@ using System.Runtime.Versioning;
 [assembly: AssemblyTitle("AzerotBatzoki")]
 [assembly: AssemblyProduct("AzerotBatzoki")]
 [assembly: AssemblyDescription("Launcher privado de AzerotBatzoki para World of Warcraft 3.3.5a")]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
 [assembly: TargetFramework(".NETFramework,Version=v4.8")]
 
 namespace AzerothCoreLauncher
@@ -76,6 +77,7 @@ namespace AzerothCoreLauncher
                 ClientDownload.Server.AbsoluteUri != "https://192.168.201.209:8788/client/" ||
                 ClientDownload.ManifestUri(ClientDownload.Server).AbsolutePath != "/client/manifest.json" ||
                 ClientDownload.FileUri(ClientDownload.Server, "Data/common.MPQ").AbsolutePath != "/client/files/Data/common.MPQ" ||
+                !TestWindowLayout() ||
                 !TestPartialFileLength() ||
                 !TestUpdateComparison() ||
                 !TestRangeParsing() ||
@@ -90,6 +92,92 @@ namespace AzerothCoreLauncher
 
             Console.WriteLine("SELF_TEST_OK");
             return 0;
+        }
+
+        private static bool TestWindowLayout()
+        {
+            try
+            {
+                using (LauncherForm form = new LauncherForm())
+                using (System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(1920, 1080))
+                using (System.Drawing.Graphics graphics = System.Drawing.Graphics.FromImage(bitmap))
+                {
+                    foreach (string name in new[] { "PaintBatzokiHome", "PaintBatzokiScene", "PaintHomeProgress" })
+                    using (Panel panel = new Panel())
+                    {
+                        panel.Size = System.Drawing.Size.Empty;
+                        typeof(LauncherForm).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)
+                            .Invoke(form, new object[] { panel, new PaintEventArgs(graphics, System.Drawing.Rectangle.Empty) });
+                    }
+                    typeof(LauncherForm).GetMethod("SetClientReady", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(form, new object[] { "Cliente seleccionado de prueba" });
+                    Label selectedStatus = (Label)typeof(LauncherForm).GetField("homeStatus", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
+                    if (selectedStatus.Text != "Cliente seleccionado de prueba")
+                        throw new InvalidOperationException("La portada no refleja el cliente seleccionado.");
+                    Control settings = form.Controls["Settings"];
+                    Control settingsContent = settings.Controls["SettingsContent"];
+                    if (settingsContent.Left != Math.Max(0, (settings.ClientSize.Width - settingsContent.Width) / 2))
+                        throw new InvalidOperationException("Ajustes no está centrado al abrir por primera vez.");
+                    // A hidden handle runs queued UI callbacks without opening a window.
+                    IntPtr hiddenHandle = form.Handle;
+                    typeof(LauncherForm).GetMethod("FitToWorkingArea", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(form, null);
+                    if (!Screen.FromHandle(form.Handle).WorkingArea.Contains(form.Bounds))
+                        throw new InvalidOperationException("La ventana no cabe en el área de trabajo actual.");
+                    bool callbackRan = false;
+                    Action<Action<string>, Action<int, string>> operation = delegate(Action<string> log, Action<int, string> report)
+                    {
+                        report(50, "Progreso de prueba");
+                    };
+                    Action completed = delegate
+                    {
+                        typeof(LauncherForm).GetMethod("SetClientReady", BindingFlags.Instance | BindingFlags.NonPublic)
+                            .Invoke(form, new object[] { "Final de prueba" });
+                        callbackRan = true;
+                    };
+                    typeof(LauncherForm).GetMethod("RunOperation", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(form, new object[] { "Prueba", operation, completed });
+                    Stopwatch timeout = Stopwatch.StartNew();
+                    FieldInfo running = typeof(LauncherForm).GetField("operationRunning", BindingFlags.Instance | BindingFlags.NonPublic);
+                    while ((!callbackRan || (int)running.GetValue(form) != 0) && timeout.ElapsedMilliseconds < 5000)
+                    {
+                        Application.DoEvents();
+                        System.Threading.Thread.Sleep(10);
+                    }
+                    if (!callbackRan || (int)running.GetValue(form) != 0 || selectedStatus.Text != "Final de prueba")
+                        throw new InvalidOperationException("El estado final se pierde o la operación no termina.");
+                    Control home = form.Controls.Cast<Control>().Single(c => c.Name == "Home");
+                    foreach (System.Drawing.Size size in new[] { new System.Drawing.Size(1000, 660), new System.Drawing.Size(1100, 680),
+                        new System.Drawing.Size(1366, 728), new System.Drawing.Size(1920, 1040), new System.Drawing.Size(1100, 730) })
+                    {
+                        form.ClientSize = size;
+                        form.PerformLayout();
+                        home.PerformLayout();
+                        CheckControlBounds(home);
+                    }
+                }
+                Console.WriteLine("WINDOW_LAYOUT_OK");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("WINDOW_LAYOUT_FAILED: " + ex.GetBaseException().Message);
+                return false;
+            }
+        }
+
+        private static void CheckControlBounds(Control parent)
+        {
+            Control[] children = parent.Controls.Cast<Control>().ToArray();
+            foreach (Control child in children)
+            {
+                if (!parent.ClientRectangle.Contains(child.Bounds))
+                    throw new InvalidOperationException("Contenido fuera de ventana: " + child.GetType().Name + " " + child.Text);
+                if (parent is TableLayoutPanel)
+                    foreach (Control other in children)
+                        if (other != child && child.Bounds.IntersectsWith(other.Bounds))
+                            throw new InvalidOperationException("Controles solapados: " + child.Text + " / " + other.Text);
+                CheckControlBounds(child);
+            }
         }
 
         private static bool TestPartialFileLength()

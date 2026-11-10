@@ -48,7 +48,7 @@ To build and self-test the branded desktop launcher (`AzerotBatzoki.exe`):
 .\LaunchWoW\Compilar.ps1
 ```
 
-The custom launcher embeds its multi-resolution Windows icon (`LaunchWoW\Assets\AzerotBatzoki.ico`) and the launcher artwork at build time, so those visual assets do not need to sit beside `AzerotBatzoki.exe` on player PCs. Its window can be resized or maximized. The legacy `LaunchWoW.exe` is a separate executable kept at `LaunchWoW\Assets\LaunchWoW.exe`; the build above creates `AzerotBatzoki.exe` and does not replace it.
+The custom launcher embeds its multi-resolution Windows icon (`LaunchWoW\Assets\AzerotBatzoki.ico`) and the launcher artwork at build time, so those visual assets do not need to sit beside `AzerotBatzoki.exe` on player PCs. Launcher 1.2 uses an adaptive layout, a Northrend artwork cover, consistent dark settings and a prominent gold Play button. Its window can be resized or maximized and adjusts when the display resolution changes. It blocks updates while the selected WoW client is running. The legacy `LaunchWoW.exe` is a separate executable kept at `LaunchWoW\Assets\LaunchWoW.exe`; the build above creates `AzerotBatzoki.exe` and does not replace it.
 
 `Test-Installer.ps1` uses a simulated Docker command and does not install WSL or change firewall rules or scheduled tasks. The launcher self-test covers manifest safety and installer behavior; a full 17+ GB download, real game launch, and connection from another PC still need LAN verification.
 

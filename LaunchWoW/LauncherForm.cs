@@ -18,11 +18,11 @@ namespace AzerothCoreLauncher
         internal const string DefaultServerAddress = "https://192.168.201.213:8787";
         internal const string DefaultRealmAddress = "192.168.201.213";
 
-        private readonly Color background = Color.FromArgb(7, 13, 23);
+        private readonly Color background = Color.FromArgb(8, 18, 31);
         private readonly Color panel = Color.FromArgb(18, 29, 43);
         private readonly Color muted = Color.FromArgb(151, 174, 193);
         private readonly Color foreground = Color.FromArgb(240, 231, 205);
-        private readonly Color accent = Color.FromArgb(179, 132, 54);
+        private readonly Color accent = Color.FromArgb(217, 182, 124);
         private readonly TextBox serverBox;
         private readonly TextBox pinBox;
         private readonly TextBox realmBox;
@@ -44,10 +44,10 @@ namespace AzerothCoreLauncher
 
         internal LauncherForm()
         {
-            Text = "AzerotBatzoki | Azeroth";
+            Text = "AzerotBatzoki | Launcher 1.2";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1100, 730);
-            MinimumSize = new Size(1100, 680);
+            MinimumSize = SizeFromClientSize(new Size(1000, 660));
             BackColor = background;
             ForeColor = foreground;
             Font = new Font("Segoe UI", 9F, FontStyle.Regular);
@@ -58,20 +58,20 @@ namespace AzerothCoreLauncher
             Panel header = new Panel();
             header.Location = new Point(0, 0);
             header.Size = new Size(880, 102);
-            header.BackColor = Color.FromArgb(18, 31, 27);
+            header.BackColor = Color.FromArgb(12, 25, 40);
             header.Paint += PaintBatzokiHeader;
             Controls.Add(header);
 
             Label title = new Label();
             title.Text = "AZEROTBATZOKI";
-            title.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
+            title.Font = new Font("Palatino Linotype", 22F, FontStyle.Bold);
             title.ForeColor = foreground;
             title.Location = new Point(30, 15);
             title.Size = new Size(420, 42);
             header.Controls.Add(title);
 
             Label subtitle = new Label();
-            subtitle.Text = "EL BATZOKI DE AZEROTH  •  WRATH OF THE LICH KING";
+            subtitle.Text = "CUENTA, CLIENTE Y CONEXIÓN";
             subtitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             subtitle.ForeColor = muted;
             subtitle.Location = new Point(31, 63);
@@ -82,7 +82,7 @@ namespace AzerothCoreLauncher
             buildBadge.Text = "REINO PRIVADO  ·  ES";
             buildBadge.TextAlign = ContentAlignment.MiddleCenter;
             buildBadge.ForeColor = Color.FromArgb(205, 222, 243);
-            buildBadge.BackColor = Color.FromArgb(37, 59, 47);
+            buildBadge.BackColor = Color.FromArgb(24, 46, 62);
             buildBadge.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             buildBadge.Location = new Point(676, 36);
             buildBadge.Size = new Size(172, 28);
@@ -90,7 +90,7 @@ namespace AzerothCoreLauncher
 
             Panel serverCard = MakeCard(24, 120, 832, 191);
             Controls.Add(serverCard);
-            AddSectionTitle(serverCard, "SERVIDOR Y CLIENTE", 18, 12);
+            AddSectionTitle(serverCard, "Servidor y cliente", 18, 12);
             AddFieldLabel(serverCard, "Servidor HTTPS", 18, 48, 170);
             serverBox = AddInput(serverCard, DefaultServerAddress, 190, 45, 621);
             AddFieldLabel(serverCard, "Huella SHA-256", 18, 83, 170);
@@ -101,7 +101,7 @@ namespace AzerothCoreLauncher
             targetBox = AddInput(serverCard,
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AzerotBatzoki", "Client"),
                 190, 150, 524);
-            Button browse = MakeButton("EXAMINAR", 722, 149, 91, 29, panel, foreground);
+            Button browse = MakeButton("Examinar", 722, 149, 91, 29, panel, foreground);
             browse.Click += delegate { BrowseTarget(); };
             serverCard.Controls.Add(browse);
 
@@ -111,10 +111,10 @@ namespace AzerothCoreLauncher
             actions.WrapContents = false;
             actions.BackColor = background;
             Controls.Add(actions);
-            Button install = MakeButton("CLIENTE / INSTALAR", 0, 0, 178, 46, accent, Color.White);
-            Button repair = MakeButton("ABRIR CARPETA", 0, 0, 152, 46, panel, foreground);
+            Button install = MakeButton("Elegir cliente", 0, 0, 178, 46, accent, Color.White);
+            Button repair = MakeButton("Abrir carpeta", 0, 0, 152, 46, panel, foreground);
             Button play = MakeButton("JUGAR", 0, 0, 132, 46, Color.FromArgb(50, 128, 83), Color.White);
-            Button host = MakeButton("ACTIVAR LAN", 0, 0, 174, 46, panel, foreground);
+            Button host = MakeButton("Compartir cliente", 0, 0, 174, 46, panel, foreground);
             install.Click += delegate { SelectClient(); };
             repair.Click += delegate { OpenClientFolder(); };
             play.Click += delegate { Play(); };
@@ -130,7 +130,7 @@ namespace AzerothCoreLauncher
 
             Panel accountCard = MakeCard(24, 397, 832, 113);
             Controls.Add(accountCard);
-            AddSectionTitle(accountCard, "CREAR CUENTA", 18, 10);
+            AddSectionTitle(accountCard, "Crear cuenta", 18, 10);
             AddFieldLabel(accountCard, "Usuario", 18, 45, 75);
             usernameBox = AddInput(accountCard, "", 92, 42, 170);
             AddFieldLabel(accountCard, "Contraseña", 278, 45, 90);
@@ -139,8 +139,8 @@ namespace AzerothCoreLauncher
             AddFieldLabel(accountCard, "Repetir", 539, 45, 62);
             confirmBox = AddInput(accountCard, "", 600, 42, 213);
             confirmBox.UseSystemPasswordChar = true;
-            Button register = MakeButton("REGISTRAR CUENTA", 18, 75, 166, 28, accent, Color.White);
-            Button copyPin = MakeButton("COPIAR HUELLA", 194, 75, 145, 28, panel, foreground);
+            Button register = MakeButton("Crear cuenta", 18, 75, 166, 28, accent, Color.White);
+            Button copyPin = MakeButton("Copiar huella", 194, 75, 145, 28, panel, foreground);
             register.Click += delegate { RegisterAccount(); };
             copyPin.Click += delegate { CopyFingerprint(); };
             accountCard.Controls.Add(register);
@@ -182,6 +182,8 @@ namespace AzerothCoreLauncher
             }
 
             BuildBatzokiHome();
+            Shown += delegate { FitToWorkingArea(); };
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
             FormClosing += delegate(object sender, FormClosingEventArgs e)
             {
@@ -197,37 +199,52 @@ namespace AzerothCoreLauncher
         private void BuildBatzokiHome()
         {
             Panel settingsPage = new Panel();
-            settingsPage.Size = new Size(880, 735);
-            settingsPage.Location = new Point(110, 0);
+            settingsPage.Name = "Settings";
+            settingsPage.Dock = DockStyle.Fill;
+            Panel settingsContent = new Panel();
+            settingsContent.Name = "SettingsContent";
+            settingsContent.Size = new Size(880, 735);
+            settingsContent.BackColor = background;
+            settingsPage.Controls.Add(settingsContent);
+            settingsPage.AutoScrollMinSize = settingsContent.Size;
             settingsPage.BackColor = background;
             settingsPage.AutoScroll = true;
             Control[] existing = Controls.Cast<Control>().ToArray();
             foreach (Control control in existing)
             {
                 Controls.Remove(control);
-                settingsPage.Controls.Add(control);
+                settingsContent.Controls.Add(control);
             }
             Controls.Add(settingsPage);
             settingsPage.Visible = false;
-            Resize += delegate
+            Action centerSettings = delegate
             {
-                settingsPage.Size = new Size(Math.Min(880, ClientSize.Width), ClientSize.Height);
-                settingsPage.Location = new Point(Math.Max(0, (ClientSize.Width - settingsPage.Width) / 2), 0);
+                settingsContent.Location = new Point(Math.Max(0, (settingsPage.ClientSize.Width - settingsContent.Width) / 2), 0);
             };
+            settingsPage.SizeChanged += delegate { centerSettings(); };
+            centerSettings();
 
-            Button back = MakeButton("VOLVER", 790, 7, 72, 25, Color.FromArgb(25, 38, 53), foreground);
-            back.Click += delegate { settingsPage.Visible = false; };
-            settingsPage.Controls.Add(back);
+            Button back = MakeButton("Volver", 790, 7, 72, 25, Color.FromArgb(25, 38, 53), foreground);
+            back.Click += delegate
+            {
+                settingsPage.Visible = false;
+                Control homePage = Controls["Home"];
+                homePage.Visible = true;
+                homePage.BringToFront();
+                homePage.SelectNextControl(null, true, true, true, false);
+            };
+            settingsContent.Controls.Add(back);
             back.BringToFront();
 
-            Panel home = new Panel();
+            Panel home = new PaintedPanel();
+            home.Name = "Home";
             home.Dock = DockStyle.Fill;
             home.BackColor = background;
             home.Paint += PaintBatzokiHome;
             Controls.Add(home);
             home.BringToFront();
 
-            Panel brand = new Panel();
+            Panel brand = new PaintedPanel();
             brand.Location = new Point(24, 7);
             brand.Size = new Size(235, 100);
             brand.BackColor = Color.Transparent;
@@ -236,8 +253,8 @@ namespace AzerothCoreLauncher
             home.Controls.Add(brand);
 
             Label banner = new Label();
-            banner.Text = "REINO PRIVADO  ·  3.3.5a  ·  ES";
-            banner.Font = new Font("Georgia", 10F, FontStyle.Bold);
+            banner.Text = "Wrath of the Lich King   /   3.3.5a";
+            banner.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
             banner.ForeColor = Color.FromArgb(226, 192, 116);
             banner.BackColor = Color.Transparent;
             banner.TextAlign = ContentAlignment.MiddleRight;
@@ -246,25 +263,18 @@ namespace AzerothCoreLauncher
             banner.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             home.Controls.Add(banner);
 
-            Panel news = new Panel();
+            Panel news = new PaintedPanel();
             news.Location = new Point(24, 111);
             news.Size = new Size(260, 463);
             news.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
-            news.BackColor = Color.FromArgb(12, 21, 34);
-            news.Paint += delegate(object sender, PaintEventArgs e)
-            {
-                using (Pen p = new Pen(Color.FromArgb(169, 126, 54), 1))
-                    e.Graphics.DrawRectangle(p, 1, 1, news.Width - 3, news.Height - 3);
-                using (Pen p = new Pen(Color.FromArgb(66, 84, 101), 1))
-                    e.Graphics.DrawRectangle(p, 5, 5, news.Width - 11, news.Height - 11);
-            };
+            news.BackColor = Color.FromArgb(12, 25, 40);
             home.Controls.Add(news);
             Label newsTitle = new Label();
             newsTitle.Text = "CRÓNICAS DEL BATZOKI";
             newsTitle.Font = new Font("Georgia", 13F, FontStyle.Bold);
             newsTitle.ForeColor = Color.FromArgb(244, 206, 117);
             newsTitle.Location = new Point(17, 18);
-            newsTitle.Size = new Size(226, 28);
+            newsTitle.Size = new Size(226, 45);
             news.Controls.Add(newsTitle);
             Label newsCopy = new Label();
             newsCopy.Text = "ONGI ETORRI, AVENTURERO\n\nEl fuego del Batzoki vuelve a arder. Reúne a tu hermandad y escribe vuestra historia en Azeroth.\n\nREINO\nAzerotBatzoki · Wrath 3.3.5a\n\nCOMUNIDAD\nUn mundo, una cuadrilla.";
@@ -282,9 +292,10 @@ namespace AzerothCoreLauncher
             ikurrina.TextAlign = ContentAlignment.MiddleCenter;
             ikurrina.Location = new Point(18, 397);
             ikurrina.Size = new Size(220, 42);
+            ikurrina.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             news.Controls.Add(ikurrina);
 
-            Panel hero = new Panel();
+            Panel hero = new PaintedPanel();
             hero.Location = new Point(298, 111);
             hero.Size = new Size(765, 463);
             hero.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -311,7 +322,7 @@ namespace AzerothCoreLauncher
             homeStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             home.Controls.Add(homeStatus);
 
-            homeProgress = new Panel();
+            homeProgress = new PaintedPanel();
             homeProgress.Location = new Point(302, 614);
             homeProgress.Size = new Size(760, 14);
             homeProgress.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -323,7 +334,7 @@ namespace AzerothCoreLauncher
             autoPlay.Text = "Abrir el juego al terminar la instalación";
             autoPlay.Checked = true;
             autoPlay.ForeColor = foreground;
-            autoPlay.BackColor = background;
+            autoPlay.BackColor = Color.Transparent;
             autoPlay.Location = new Point(28, 650);
             autoPlay.Size = new Size(260, 27);
             autoPlay.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
@@ -333,9 +344,16 @@ namespace AzerothCoreLauncher
             Button options = MakeButton("CUENTA · AJUSTES", 300, 650, 160, 35, Color.FromArgb(20, 33, 47), foreground);
             options.FlatAppearance.BorderSize = 1;
             options.FlatAppearance.BorderColor = Color.FromArgb(88, 108, 124);
-            options.Anchor = AnchorStyles.Bottom;
+            options.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             AddButtonHover(options, Color.FromArgb(31, 51, 68), Color.FromArgb(128, 158, 178));
-            options.Click += delegate { settingsPage.Visible = true; settingsPage.BringToFront(); };
+            options.Click += delegate
+            {
+                home.Visible = false;
+                settingsPage.Visible = true;
+                settingsPage.BringToFront();
+                centerSettings();
+                serverBox.Focus();
+            };
             home.Controls.Add(options);
 
             Button update = MakeButton("ACTUALIZAR", 472, 643, 150, 52, Color.FromArgb(29, 62, 76), Color.FromArgb(196, 224, 229));
@@ -365,66 +383,180 @@ namespace AzerothCoreLauncher
             play.Click += delegate { Play(); };
             home.Controls.Add(play);
             actionButtons.Add(play);
+            ArrangeHome(home, brand, banner, news, newsTitle, newsCopy, ikurrina,
+                hero, sceneCaption, autoPlay, options, update, install, play);
+        }
+
+        private void ArrangeHome(Panel home, Panel brand, Label banner, Panel news,
+            Label newsTitle, Label newsCopy, Label edition, Panel hero, Label caption,
+            CheckBox autoPlay, params Button[] buttons)
+        {
+            home.SuspendLayout();
+            home.Controls.Clear();
+            TableLayoutPanel layout = CreateLayout(3, 4);
+            layout.Padding = new Padding(28, 12, 28, 24);
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 244));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+            home.Controls.Add(layout);
+            brand.Dock = DockStyle.Left;
+            brand.Margin = Padding.Empty;
+            layout.Controls.Add(brand, 0, 0);
+            banner.Dock = DockStyle.Fill;
+            banner.Margin = new Padding(0, 12, 12, 12);
+            layout.Controls.Add(banner, 1, 0);
+            layout.SetColumnSpan(banner, 2);
+            news.Dock = DockStyle.Fill;
+            news.Margin = Padding.Empty;
+            layout.Controls.Add(news, 0, 1);
+            news.Controls.Clear();
+            TableLayoutPanel newsLayout = CreateLayout(1, 3);
+            newsLayout.Padding = new Padding(16);
+            newsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            newsLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+            newsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            newsLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            news.Controls.Add(newsLayout);
+            newsTitle.Text = "Ongi etorri.";
+            newsTitle.Font = new Font("Palatino Linotype", 20F, FontStyle.Bold);
+            newsTitle.Dock = DockStyle.Fill;
+            newsTitle.Margin = Padding.Empty;
+            newsLayout.Controls.Add(newsTitle, 0, 0);
+            newsCopy.Dock = DockStyle.Fill;
+            newsCopy.Margin = new Padding(0, 6, 0, 8);
+            newsCopy.Font = new Font("Segoe UI", 9.5F);
+            newsCopy.ForeColor = Color.FromArgb(179, 197, 209);
+            newsCopy.Text = "Un reino, una cuadrilla.\n\nReúne a tu hermandad y vuelve a escribir tu historia en Azeroth.\n\nTU REINO\nAzerotBatzoki\n\nTU AVENTURA\nWrath of the Lich King\n\nAntes de actualizar, cierra WoW. Tus ajustes se conservan.";
+            newsLayout.Controls.Add(newsCopy, 0, 1);
+            edition.Text = "WoW 3.3.5a · BUILD 12340";
+            edition.Font = new Font("Segoe UI", 8F, FontStyle.Bold);
+            edition.BackColor = Color.Transparent;
+            edition.ForeColor = muted;
+            edition.Dock = DockStyle.Fill;
+            edition.Margin = Padding.Empty;
+            newsLayout.Controls.Add(edition, 0, 2);
+            hero.Dock = DockStyle.Fill;
+            hero.Margin = Padding.Empty;
+            layout.Controls.Add(hero, 2, 1);
+            caption.Dock = DockStyle.Bottom;
+            caption.Height = 30;
+            caption.Padding = new Padding(12, 0, 0, 0);
+            caption.BackColor = Color.FromArgb(12, 21, 34);
+            caption.Dispose();
+            TableLayoutPanel state = CreateLayout(1, 2);
+            state.Padding = new Padding(0, 10, 0, 8);
+            state.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            state.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            state.RowStyles.Add(new RowStyle(SizeType.Absolute, 6));
+            layout.Controls.Add(state, 2, 2);
+            homeStatus.Dock = DockStyle.Fill;
+            homeStatus.Margin = Padding.Empty;
+            homeStatus.AutoEllipsis = true;
+            homeStatus.AccessibleName = "Estado del cliente";
+            state.Controls.Add(homeStatus, 0, 0);
+            homeProgress.Dock = DockStyle.Fill;
+            homeProgress.Margin = Padding.Empty;
+            state.Controls.Add(homeProgress, 0, 1);
+            autoPlay.Dock = DockStyle.Fill;
+            autoPlay.Margin = new Padding(0, 4, 8, 4);
+            autoPlay.Font = new Font("Segoe UI", 9F);
+            autoPlay.Text = "Abrir WoW al terminar la instalación";
+            layout.Controls.Add(autoPlay, 0, 3);
+            TableLayoutPanel toolbar = CreateLayout(4, 1);
+            toolbar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            layout.Controls.Add(toolbar, 2, 3);
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, i == 3 ? 31 : 23));
+                buttons[i].Dock = DockStyle.Fill;
+                buttons[i].Margin = new Padding(0, 4, i == 3 ? 0 : 8, 4);
+                buttons[i].TabIndex = i;
+                buttons[i].AccessibleName = buttons[i].Text;
+                toolbar.Controls.Add(buttons[i], i, 0);
+            }
+            string[] names = { "Cuenta y ajustes", "Actualizar", "Instalar cliente", "Jugar" };
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                Button button = buttons[i];
+                button.Text = names[i];
+                button.AccessibleName = names[i];
+                button.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+                button.BackColor = Color.FromArgb(18, 36, 53);
+                button.ForeColor = Color.FromArgb(213, 224, 229);
+                button.FlatAppearance.BorderSize = 1;
+                button.FlatAppearance.BorderColor = Color.FromArgb(54, 79, 96);
+                button.FlatAppearance.MouseOverBackColor = Color.FromArgb(29, 53, 72);
+                button.FlatAppearance.MouseDownBackColor = Color.FromArgb(13, 27, 41);
+            }
+            buttons[3].Font = new Font("Palatino Linotype", 17F, FontStyle.Bold);
+            buttons[3].BackColor = accent;
+            buttons[3].ForeColor = Color.FromArgb(18, 27, 34);
+            buttons[3].FlatAppearance.BorderColor = Color.FromArgb(241, 211, 157);
+            buttons[3].FlatAppearance.MouseOverBackColor = Color.FromArgb(238, 208, 156);
+            buttons[3].FlatAppearance.MouseDownBackColor = Color.FromArgb(191, 153, 92);
+            home.ResumeLayout(true);
+        }
+
+        private static TableLayoutPanel CreateLayout(int columns, int rows)
+        {
+            TableLayoutPanel result = new TableLayoutPanel();
+            result.ColumnCount = columns;
+            result.RowCount = rows;
+            result.Dock = DockStyle.Fill;
+            result.Margin = Padding.Empty;
+            result.BackColor = Color.Transparent;
+            result.GrowStyle = TableLayoutPanelGrowStyle.FixedSize;
+            return result;
+        }
+
+        // Repaint the full surface after resizing, including transparent children.
+        private sealed class PaintedPanel : Panel
+        {
+            internal PaintedPanel()
+            {
+                DoubleBuffered = true;
+                ResizeRedraw = true;
+            }
         }
 
         private void PaintBatzokiCrest(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            Point[] shield = { new Point(8, 6), new Point(226, 6), new Point(215, 67), new Point(117, 91), new Point(19, 67) };
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(245, 10, 18, 29))) g.FillPolygon(b, shield);
-            using (Pen p = new Pen(Color.FromArgb(218, 174, 78), 2)) g.DrawPolygon(p, shield);
-            using (Pen p = new Pen(Color.FromArgb(94, 117, 132), 1))
-                g.DrawPolygon(p, new[] { new Point(15, 12), new Point(219, 12), new Point(209, 62), new Point(117, 83), new Point(25, 62) });
-            using (Font f = new Font("Georgia", 17F, FontStyle.Bold))
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(249, 218, 139)))
-            using (StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                g.DrawString("AZEROT\nBATZOKI", f, b, new RectangleF(15, 10, 204, 48), sf);
-            using (Font f = new Font("Segoe UI", 7.5F, FontStyle.Bold))
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(181, 203, 216)))
-            using (StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                g.DrawString("EL BATZOKI DE AZEROTH", f, b, new RectangleF(22, 62, 190, 14), sf);
+            if (Icon != null) g.DrawIcon(Icon, new Rectangle(0, 14, 62, 62));
+            using (Font title = new Font("Palatino Linotype", 17F, FontStyle.Bold))
+            using (SolidBrush gold = new SolidBrush(Color.FromArgb(231, 202, 149)))
+                g.DrawString("AZEROT\nBATZOKI", title, gold, new RectangleF(70, 12, 162, 58));
+            using (Font small = new Font("Segoe UI", 7F))
+            using (SolidBrush dim = new SolidBrush(muted))
+                g.DrawString("EL BATZOKI DE AZEROTH", small, dim, 72, 73);
         }
 
         private void PaintHomeProgress(object sender, PaintEventArgs e)
         {
             Panel bar = (Panel)sender;
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using (Pen p = new Pen(Color.FromArgb(157, 119, 54), 1)) e.Graphics.DrawRectangle(p, 0, 0, bar.Width - 1, bar.Height - 1);
-            int width = Math.Max(0, (bar.Width - 4) * homeProgressPercent / 100);
+            if (bar.Width <= 0 || bar.Height <= 0) return;
+            using (SolidBrush rail = new SolidBrush(Color.FromArgb(31, 52, 69)))
+                e.Graphics.FillRectangle(rail, bar.ClientRectangle);
+            int width = (int)((long)bar.Width * homeProgressPercent / 100);
             if (width > 0)
-            {
-                using (System.Drawing.Drawing2D.LinearGradientBrush b = new System.Drawing.Drawing2D.LinearGradientBrush(
-                    new Rectangle(2, 2, Math.Max(1, width), bar.Height - 4), Color.FromArgb(218, 177, 80), Color.FromArgb(116, 146, 172), 0F))
-                    e.Graphics.FillRectangle(b, 2, 2, width, bar.Height - 4);
-            }
-            using (Font f = new Font("Segoe UI", 7F, FontStyle.Bold))
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(218, 222, 222)))
-                e.Graphics.DrawString(homeProgressPercent + "%", f, b, bar.Width - 38, -1);
+                using (SolidBrush fill = new SolidBrush(accent))
+                    e.Graphics.FillRectangle(fill, 0, 0, width, bar.Height);
         }
 
         private void PaintBatzokiHome(object sender, PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
-            int width = ((Control)sender).ClientSize.Width;
-            int height = ((Control)sender).ClientSize.Height;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using (System.Drawing.Drawing2D.LinearGradientBrush b = new System.Drawing.Drawing2D.LinearGradientBrush(
-                new Rectangle(0, 0, width, height), Color.FromArgb(9, 17, 29), Color.FromArgb(24, 34, 44), 90F))
-                g.FillRectangle(b, 0, 0, width, height);
-            using (Pen p = new Pen(Color.FromArgb(174, 130, 56), 1))
-                g.DrawRectangle(p, 9, 9, width - 19, height - 19);
-            using (Pen p = new Pen(Color.FromArgb(54, 75, 91), 1))
-                g.DrawRectangle(p, 14, 14, width - 29, height - 29);
-            using (Pen p = new Pen(Color.FromArgb(129, 99, 49), 1))
-            {
-                g.DrawLine(p, 25, 104, width - 26, 104);
-                g.DrawLine(p, 25, 108, width - 26, 108);
-            }
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(183, 39, 38)))
-                g.FillRectangle(b, width - 39, 23, 6, 26);
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(42, 117, 71)))
-                g.FillRectangle(b, width - 32, 23, 6, 26);
+            Control surface = (Control)sender;
+            if (surface.Width <= 0 || surface.Height <= 0) return;
+            using (System.Drawing.Drawing2D.LinearGradientBrush wash = new System.Drawing.Drawing2D.LinearGradientBrush(
+                surface.ClientRectangle, Color.FromArgb(8, 18, 31), Color.FromArgb(16, 31, 45), 90F))
+                e.Graphics.FillRectangle(wash, surface.ClientRectangle);
+            using (Pen rule = new Pen(Color.FromArgb(40, 61, 77)))
+                e.Graphics.DrawLine(rule, 28, 99, surface.Width - 28, 99);
         }
 
         private void PaintBatzokiScene(object sender, PaintEventArgs e)
@@ -432,12 +564,18 @@ namespace AzerothCoreLauncher
             Graphics g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             int w = ((Control)sender).Width, h = ((Control)sender).Height;
+            if (w <= 0 || h <= 0) return;
             Image suppliedArtwork = LoadHeroArtwork();
             if (suppliedArtwork != null)
             {
                 g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
                 g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                g.DrawImage(suppliedArtwork, new Rectangle(0, 0, w, h));
+                float scale = Math.Max((float)w / suppliedArtwork.Width, (float)h / suppliedArtwork.Height);
+                float sourceWidth = w / scale, sourceHeight = h / scale;
+                g.DrawImage(suppliedArtwork, new Rectangle(0, 0, w, h),
+                    new RectangleF((suppliedArtwork.Width - sourceWidth) / 2,
+                        0, sourceWidth, sourceHeight), GraphicsUnit.Pixel);
+                PaintHeroOverlay(g, w, h);
                 DrawOrnateFrame(g, w, h);
                 return;
             }
@@ -492,6 +630,22 @@ namespace AzerothCoreLauncher
                 g.DrawPath(track, path);
             }
             DrawOrnateFrame(g, w, h);
+        }
+
+        private void PaintHeroOverlay(Graphics graphics, int width, int height)
+        {
+            if (width < 100 || height < 180) return;
+            int top = Math.Max(0, height - 230);
+            using (System.Drawing.Drawing2D.LinearGradientBrush shade = new System.Drawing.Drawing2D.LinearGradientBrush(
+                new Rectangle(0, top, width, height - top), Color.FromArgb(0, 6, 14, 24), Color.FromArgb(246, 6, 14, 24), 90F))
+                graphics.FillRectangle(shade, 0, top, width, height - top);
+            using (Font title = new Font("Palatino Linotype", 30F, FontStyle.Bold))
+            using (SolidBrush ink = new SolidBrush(Color.FromArgb(245, 236, 214)))
+                graphics.DrawString("El norte te espera.", title, ink, new RectangleF(30, height - 129, width - 60, 65));
+            using (Font copy = new Font("Segoe UI", 11F))
+            using (SolidBrush ink = new SolidBrush(Color.FromArgb(190, 211, 222)))
+                graphics.DrawString("Tu cuadrilla. Tu reino. Tu próxima aventura.", copy, ink,
+                    new RectangleF(34, height - 61, width - 68, 35));
         }
 
         private Image LoadHeroArtwork()
@@ -559,38 +713,25 @@ namespace AzerothCoreLauncher
 
         private static void DrawOrnateFrame(Graphics g, int w, int h)
         {
-            using (Pen gold = new Pen(Color.FromArgb(181, 135, 57), 2))
-            using (Pen dim = new Pen(Color.FromArgb(86, 105, 116), 1))
+            if (w < 3 || h < 3) return;
+            using (Pen edge = new Pen(Color.FromArgb(83, 111, 126)))
+                g.DrawRectangle(edge, 0, 0, w - 1, h - 1);
+            using (Pen gold = new Pen(Color.FromArgb(215, 181, 122), 2))
             {
-                g.DrawRectangle(gold, 1, 1, w - 3, h - 3);
-                g.DrawRectangle(dim, 5, 5, w - 11, h - 11);
-                int[][] corners = { new[] { 9, 9, 1, 1 }, new[] { w - 10, 9, -1, 1 }, new[] { 9, h - 10, 1, -1 }, new[] { w - 10, h - 10, -1, -1 } };
-                foreach (int[] c in corners)
-                {
-                    g.DrawLine(gold, c[0], c[1], c[0] + 24 * c[2], c[1]);
-                    g.DrawLine(gold, c[0], c[1], c[0], c[1] + 24 * c[3]);
-                    g.DrawLine(dim, c[0] + 5 * c[2], c[1] + 5 * c[3], c[0] + 16 * c[2], c[1] + 5 * c[3]);
-                    g.DrawLine(dim, c[0] + 5 * c[2], c[1] + 5 * c[3], c[0] + 5 * c[2], c[1] + 16 * c[3]);
-                }
+                g.DrawLine(gold, 0, 0, 26, 0);
+                g.DrawLine(gold, 0, 0, 0, 26);
+                g.DrawLine(gold, w - 27, h - 1, w - 1, h - 1);
+                g.DrawLine(gold, w - 1, h - 27, w - 1, h - 1);
             }
         }
 
         private void PaintBatzokiHeader(object sender, PaintEventArgs e)
         {
-            Graphics graphics = e.Graphics;
             int width = ((Control)sender).Width;
-            using (SolidBrush shadow = new SolidBrush(Color.FromArgb(30, 8, 15, 13)))
-                graphics.FillPolygon(shadow, new[] { new Point(width - 360, 102), new Point(width - 255, 26),
-                    new Point(width - 190, 72), new Point(width - 112, 8), new Point(width - 12, 102) });
-            using (SolidBrush mountain = new SolidBrush(Color.FromArgb(255, 34, 57, 44)))
-                graphics.FillPolygon(mountain, new[] { new Point(width - 310, 102), new Point(width - 226, 50),
-                    new Point(width - 163, 88), new Point(width - 102, 38), new Point(width - 30, 102) });
-            using (SolidBrush sun = new SolidBrush(Color.FromArgb(90, 205, 171, 105)))
-                graphics.FillEllipse(sun, width - 174, 14, 50, 50);
-            using (SolidBrush green = new SolidBrush(Color.FromArgb(28, 101, 65)))
-                graphics.FillRectangle(green, 0, 98, width, 2);
-            using (SolidBrush red = new SolidBrush(Color.FromArgb(165, 40, 47)))
-                graphics.FillRectangle(red, 0, 100, width, 2);
+            using (Pen line = new Pen(Color.FromArgb(53, 77, 93)))
+                e.Graphics.DrawLine(line, 0, 100, width, 100);
+            using (Pen gold = new Pen(accent, 2))
+                e.Graphics.DrawLine(gold, 30, 100, 170, 100);
         }
 
         private Panel MakeCard(int x, int y, int width, int height)
@@ -629,8 +770,8 @@ namespace AzerothCoreLauncher
             box.Text = text;
             box.Location = new Point(x, y);
             box.Size = new Size(width, 25);
-            box.BackColor = Color.FromArgb(239, 243, 248);
-            box.ForeColor = Color.FromArgb(25, 34, 45);
+            box.BackColor = Color.FromArgb(10, 20, 32);
+            box.ForeColor = foreground;
             box.BorderStyle = BorderStyle.FixedSingle;
             parent.Controls.Add(box);
             return box;
@@ -645,7 +786,7 @@ namespace AzerothCoreLauncher
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
             button.BackColor = back;
-            button.ForeColor = fore;
+            button.ForeColor = back.ToArgb() == accent.ToArgb() ? background : fore;
             button.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             button.Cursor = Cursors.Hand;
             return button;
@@ -655,7 +796,7 @@ namespace AzerothCoreLauncher
         {
             Color normalBorder = button.FlatAppearance.BorderColor;
             button.FlatAppearance.MouseOverBackColor = hoverBack;
-            button.FlatAppearance.MouseDownBackColor = Color.FromArgb(40, hoverBack);
+            button.FlatAppearance.MouseDownBackColor = Color.FromArgb(hoverBack.R * 3 / 4, hoverBack.G * 3 / 4, hoverBack.B * 3 / 4);
             button.MouseEnter += delegate { button.FlatAppearance.BorderColor = hoverBorder; };
             button.MouseLeave += delegate { button.FlatAppearance.BorderColor = normalBorder; };
         }
@@ -697,7 +838,7 @@ namespace AzerothCoreLauncher
                     return;
                 }
                 targetBox.Text = dialog.SelectedPath;
-                status.Text = "Cliente seleccionado. Realmlist configurada al pulsar JUGAR.";
+                SetClientReady("Cliente seleccionado · listo para entrar");
             }
         }
 
@@ -730,16 +871,14 @@ namespace AzerothCoreLauncher
                         int percent = total <= 0 ? 0 : (int)Math.Min(99, done * 100 / total);
                         report(percent, "Descargando " + path + " · " + FormatBytes(done) + " / " + FormatBytes(total));
                     });
-                BeginInvoke((MethodInvoker)delegate
-                {
-                    targetBox.Text = target;
-                    log("Cliente instalado, verificado y configurado para " + realm + ".");
-                    if (autoPlayAfterInstall)
-                        Play();
-                    else
-                        status.Text = "Cliente instalado. Pulsa JUGAR cuando quieras entrar.";
-                });
-                report(100, "Cliente listo. Iniciando el juego...");
+                report(100, "Cliente instalado y verificado.");
+            }, delegate
+            {
+                targetBox.Text = target;
+                SetClientReady("Cliente instalado · listo para entrar");
+                AppendLog("Cliente instalado, verificado y configurado para " + realm + ".");
+                if (autoPlayAfterInstall)
+                    Play();
             });
         }
 
@@ -773,15 +912,20 @@ namespace AzerothCoreLauncher
                         int percent = total <= 0 ? 100 : (int)Math.Min(99, done * 100 / total);
                         report(percent, path + " · " + FormatBytes(done) + " / " + FormatBytes(total));
                     });
-                BeginInvoke((MethodInvoker)delegate
-                {
-                    existingClientDetected = true;
-                    homeStatus.Text = "Cliente actualizado · listo para entrar";
-                    homeStatus.ForeColor = Color.FromArgb(122, 224, 149);
-                    log("Actualización completa. Los archivos locales no incluidos en el manifiesto se han conservado.");
-                });
                 report(100, "Cliente actualizado.");
+            }, delegate
+            {
+                SetClientReady("Cliente actualizado · listo para entrar");
+                AppendLog("Actualización completa. Los archivos locales no incluidos en el manifiesto se han conservado.");
             });
+        }
+
+        private void SetClientReady(string message)
+        {
+            existingClientDetected = true;
+            status.Text = message;
+            homeStatus.Text = message;
+            homeStatus.ForeColor = Color.FromArgb(122, 224, 149);
         }
 
         private static string FormatBytes(long bytes)
@@ -828,7 +972,7 @@ namespace AzerothCoreLauncher
             Process.Start(start);
         }
 
-        private void RunOperation(string name, Action<Action<string>, Action<int, string>> operation)
+        private void RunOperation(string name, Action<Action<string>, Action<int, string>> operation, Action completed = null)
         {
             if (Interlocked.CompareExchange(ref operationRunning, 1, 0) != 0)
                 return;
@@ -836,6 +980,10 @@ namespace AzerothCoreLauncher
                 button.Enabled = false;
             progress.Value = 0;
             status.Text = name + "...";
+            homeStatus.Text = status.Text;
+            homeStatus.ForeColor = Color.FromArgb(237, 190, 105);
+            homeProgressPercent = 0;
+            homeProgress.Invalidate();
             AppendLog("> " + name);
 
             Thread worker = new Thread(delegate()
@@ -847,7 +995,13 @@ namespace AzerothCoreLauncher
                     {
                         progress.Value = 100;
                         status.Text = name + " completado.";
+                        homeStatus.Text = status.Text;
+                        homeStatus.ForeColor = Color.FromArgb(122, 224, 149);
+                        homeProgressPercent = 100;
+                        homeProgress.Invalidate();
                         AppendLog(name + " completado.");
+                        if (completed != null)
+                            completed();
                     });
                 }
                 catch (Exception ex)
@@ -855,6 +1009,8 @@ namespace AzerothCoreLauncher
                     BeginInvoke((MethodInvoker)delegate
                     {
                         status.Text = "La operación ha fallado.";
+                        homeStatus.Text = status.Text + " " + ex.Message;
+                        homeStatus.ForeColor = Color.FromArgb(244, 135, 125);
                         AppendLog("ERROR: " + ex.Message);
                         MessageBox.Show(this, ex.Message, "AzerothCore Launcher", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     });
@@ -969,6 +1125,7 @@ namespace AzerothCoreLauncher
 
             try
             {
+                ClientValidation.EnsureClientStopped(target);
                 foreach (string localeName in new[] { "enUS", "enGB", "esES" })
                 {
                     string locale = Path.Combine(target, "Data", localeName);
@@ -985,7 +1142,7 @@ namespace AzerothCoreLauncher
                 start.FileName = executable;
                 start.WorkingDirectory = target;
                 Process.Start(start);
-                status.Text = "WoW iniciado. Realmlist: " + realm;
+                SetClientReady("WoW iniciado. Realmlist: " + realm);
                 AppendLog("WoW iniciado. Realmlist: " + realm);
             }
             catch (Exception ex)
@@ -1135,6 +1292,35 @@ namespace AzerothCoreLauncher
         private static string NormalizePin(string value)
         {
             return Regex.Replace((value ?? String.Empty).Trim(), "[: ]", String.Empty).ToLowerInvariant();
+        }
+
+        private void OnDisplaySettingsChanged(object sender, EventArgs e)
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            try { BeginInvoke((MethodInvoker)FitToWorkingArea); }
+            catch (InvalidOperationException) { }
+        }
+
+        private void FitToWorkingArea()
+        {
+            if (IsDisposed || WindowState != FormWindowState.Normal) return;
+            Rectangle area = Screen.FromHandle(Handle).WorkingArea;
+            MinimumSize = new Size(Math.Min(MinimumSize.Width, area.Width), Math.Min(MinimumSize.Height, area.Height));
+            Size = new Size(Math.Min(Width, area.Width), Math.Min(Height, area.Height));
+            Location = new Point(Math.Max(area.Left, Math.Min(Left, area.Right - Width)),
+                Math.Max(area.Top, Math.Min(Top, area.Bottom - Height)));
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+            if (disposing && heroArtwork != null)
+            {
+                heroArtwork.Dispose();
+                heroArtwork = null;
+            }
+            base.Dispose(disposing);
         }
 
         private void ShowWarning(string message)

@@ -231,6 +231,30 @@ namespace AzerothCoreLauncher
             return null;
         }
 
+        internal static void EnsureClientStopped(string clientDirectory)
+        {
+            string executable = Path.GetFullPath(Path.Combine(clientDirectory, "Wow.exe"));
+            foreach (Process process in Process.GetProcessesByName("Wow"))
+            using (process)
+            {
+                try
+                {
+                    if (String.Equals(Path.GetFullPath(process.MainModule.FileName), executable,
+                        StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Este cliente WoW ya está abierto. Ciérralo antes de actualizarlo o volver a iniciarlo.");
+                }
+                catch (System.ComponentModel.Win32Exception)
+                {
+                    throw new InvalidOperationException("No se pudo comprobar qué cliente WoW está abierto. Cierra WoW antes de continuar.");
+                }
+                catch (InvalidOperationException)
+                {
+                    if (!process.HasExited)
+                        throw;
+                }
+            }
+        }
+
         internal static string GetMissingRequiredArchive(string clientDirectory)
         {
             string dataDirectory = System.IO.Path.Combine(clientDirectory, "Data");
@@ -445,6 +469,7 @@ namespace AzerothCoreLauncher
         internal static void Update(Uri server, string pin, string destination,
             Action<long, long, string> progress)
         {
+            ClientValidation.EnsureClientStopped(destination);
             Uri baseUri = new Uri(server.AbsoluteUri.TrimEnd('/') + "/");
             ClientManifest manifest;
             HttpWebRequest manifestRequest = CreatePinnedRequest(ManifestUri(baseUri), pin);
