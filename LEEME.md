@@ -67,3 +67,7 @@ Incluye las fuentes Go del instalador de servidor y las fuentes C# del launcher 
 La actualización distingue la comparación inicial de la descarga de archivos nuevos o distintos. Durante la descarga muestra el número de archivos terminados, usa hasta cuatro transferencias simultáneas y solo llega al 100 % cuando todos están verificados. El host ignora cambios de WTF, registros y otras carpetas excluidas al mantener su manifiesto en memoria. La primera lectura del manifiesto tras un cambio de distribución todavía puede tardar mientras calcula hashes.
 
 Cierra WoW y el launcher en el PC del jugador, sustituye AzerotBatzoki.exe por la versión 1.2.1 y vuelve a abrirlo. No basta con actualizar solo el host. Los addons y ajustes personales se conservan conforme a las reglas anteriores.
+
+## Portada en alta resolución — 1.2.2
+
+Ilustración reconstruida de 301x205 a1536x1024, con el coche de época y la explosión solicitados. Se muestra completa y proporcionada, con márgenes oscuros cuando hace falta para conservar todo el encuadre. Se retiró el texto superpuesto. Cierra y vuelve a abrir el launcher para verla; no requiere reiniciar el host de descargas ni el juego.

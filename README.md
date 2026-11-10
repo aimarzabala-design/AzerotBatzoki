@@ -61,3 +61,5 @@ If the repository is private, the owner must invite collaborators through GitHub
 No license is granted here for third-party game clients or assets. This repository does not redistribute those files. Check the licenses and attribution notices for third-party components before modifying or redistributing them.
 
 Update regression checks: run LaunchWoW\Tests\Test-Updates.ps1. It uses synthetic files and an HTTP listener bound to loopback, checks progress and concurrency, and verifies that corrupt downloads preserve the original. It does not download or modify real game data.
+
+Launcher 1.2.2 embeds a restored 1536x1024 Northrend illustration with the user-requested airborne vintage sedan and explosion. The complete artwork is fitted inside the hero panel without distortion or cropping, with no text covering the image. The previous update fixes remain included; no download-host restart is needed for this artwork-only update.

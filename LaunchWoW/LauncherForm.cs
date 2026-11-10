@@ -48,7 +48,7 @@ namespace AzerothCoreLauncher
 
         internal LauncherForm()
         {
-            Text = "AzerotBatzoki | Launcher 1.2.1";
+            Text = "AzerotBatzoki | Launcher 1.2.2";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1100, 730);
             MinimumSize = SizeFromClientSize(new Size(1000, 660));
@@ -574,12 +574,12 @@ namespace AzerothCoreLauncher
             {
                 g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
                 g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                float scale = Math.Max((float)w / suppliedArtwork.Width, (float)h / suppliedArtwork.Height);
-                float sourceWidth = w / scale, sourceHeight = h / scale;
-                g.DrawImage(suppliedArtwork, new Rectangle(0, 0, w, h),
-                    new RectangleF((suppliedArtwork.Width - sourceWidth) / 2,
-                        0, sourceWidth, sourceHeight), GraphicsUnit.Pixel);
-                PaintHeroOverlay(g, w, h);
+                // Preserve the complete illustration, including its foreground details.
+                float scale = Math.Min((float)w / suppliedArtwork.Width, (float)h / suppliedArtwork.Height);
+                float imageWidth = suppliedArtwork.Width * scale, imageHeight = suppliedArtwork.Height * scale;
+                g.Clear(Color.FromArgb(6, 14, 24));
+                g.DrawImage(suppliedArtwork, new RectangleF((w - imageWidth) / 2, (h - imageHeight) / 2,
+                    imageWidth, imageHeight), new RectangleF(0, 0, suppliedArtwork.Width, suppliedArtwork.Height), GraphicsUnit.Pixel);
                 DrawOrnateFrame(g, w, h);
                 return;
             }
@@ -634,22 +634,6 @@ namespace AzerothCoreLauncher
                 g.DrawPath(track, path);
             }
             DrawOrnateFrame(g, w, h);
-        }
-
-        private void PaintHeroOverlay(Graphics graphics, int width, int height)
-        {
-            if (width < 100 || height < 180) return;
-            int top = Math.Max(0, height - 230);
-            using (System.Drawing.Drawing2D.LinearGradientBrush shade = new System.Drawing.Drawing2D.LinearGradientBrush(
-                new Rectangle(0, top, width, height - top), Color.FromArgb(0, 6, 14, 24), Color.FromArgb(246, 6, 14, 24), 90F))
-                graphics.FillRectangle(shade, 0, top, width, height - top);
-            using (Font title = new Font("Palatino Linotype", 30F, FontStyle.Bold))
-            using (SolidBrush ink = new SolidBrush(Color.FromArgb(245, 236, 214)))
-                graphics.DrawString("El norte te espera.", title, ink, new RectangleF(30, height - 129, width - 60, 65));
-            using (Font copy = new Font("Segoe UI", 11F))
-            using (SolidBrush ink = new SolidBrush(Color.FromArgb(190, 211, 222)))
-                graphics.DrawString("Tu cuadrilla. Tu reino. Tu próxima aventura.", copy, ink,
-                    new RectangleF(34, height - 61, width - 68, 35));
         }
 
         private Image LoadHeroArtwork()

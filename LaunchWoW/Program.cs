@@ -13,8 +13,8 @@ using System.Runtime.Versioning;
 [assembly: AssemblyTitle("AzerotBatzoki")]
 [assembly: AssemblyProduct("AzerotBatzoki")]
 [assembly: AssemblyDescription("Launcher privado de AzerotBatzoki para World of Warcraft 3.3.5a")]
-[assembly: AssemblyVersion("1.2.1.0")]
-[assembly: AssemblyFileVersion("1.2.1.0")]
+[assembly: AssemblyVersion("1.2.2.0")]
+[assembly: AssemblyFileVersion("1.2.2.0")]
 [assembly: TargetFramework(".NETFramework,Version=v4.8")]
 
 namespace AzerothCoreLauncher
